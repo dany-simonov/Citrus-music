@@ -1,0 +1,158 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --citrus-accent: #E47600;
+  --citrus-bg-light: #FFFFFF;
+  --citrus-bg-dark: #000000;
+  --citrus-secondary-light: #F5F5F5;
+  --citrus-secondary-dark: #1F1F1F;
+}
+
+@layer base {
+  body {
+    @apply bg-white dark:bg-black text-black dark:text-white;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Скроллбар */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-neutral-900;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-neutral-700 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-neutral-600;
+  }
+}
+
+@layer components {
+  /* Кнопка с акцентным цветом */
+  .btn-primary {
+    @apply bg-citrus-accent text-white px-6 py-3 rounded-full font-medium
+           hover:bg-orange-600 active:bg-orange-700 
+           transition-colors duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-citrus-secondary-light dark:bg-citrus-secondary-dark
+           text-black dark:text-white px-6 py-3 rounded-full font-medium
+           hover:bg-gray-200 dark:hover:bg-neutral-800
+           transition-colors duration-200;
+  }
+
+  .btn-ghost {
+    @apply text-black dark:text-white px-4 py-2 rounded-lg
+           hover:bg-gray-100 dark:hover:bg-neutral-800
+           transition-colors duration-200;
+  }
+
+  .btn-icon {
+    @apply p-2 rounded-full 
+           hover:bg-gray-100 dark:hover:bg-neutral-800
+           transition-colors duration-200
+           flex items-center justify-center;
+  }
+
+  /* Карточки */
+  .card {
+    @apply bg-citrus-secondary-light dark:bg-citrus-secondary-dark
+           rounded-xl p-4 
+           hover:bg-gray-200 dark:hover:bg-neutral-800
+           transition-colors duration-200;
+  }
+
+  /* Поля ввода */
+  .input {
+    @apply bg-citrus-secondary-light dark:bg-citrus-secondary-dark
+           border border-gray-200 dark:border-neutral-700
+           rounded-lg px-4 py-3
+           text-black dark:text-white
+           placeholder:text-gray-500
+           focus:outline-none focus:ring-2 focus:ring-citrus-accent focus:border-transparent
+           transition-all duration-200;
+  }
+
+  /* Прогресс-бар */
+  .progress-bar {
+    @apply h-1 bg-gray-200 dark:bg-neutral-700 rounded-full overflow-hidden;
+  }
+
+  .progress-bar-fill {
+    @apply h-full bg-citrus-accent transition-all duration-100;
+  }
+
+  /* Плеер */
+  .player-container {
+    @apply fixed bottom-0 left-0 right-0 
+           bg-citrus-secondary-light dark:bg-citrus-secondary-dark
+           border-t border-gray-200 dark:border-neutral-800
+           z-50;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    @apply fixed left-0 top-0 h-full 
+           w-64 bg-citrus-secondary-light dark:bg-citrus-secondary-dark
+           border-r border-gray-200 dark:border-neutral-800
+           z-40;
+  }
+
+  /* Track item */
+  .track-item {
+    @apply flex items-center gap-3 p-2 rounded-lg
+           hover:bg-gray-100 dark:hover:bg-neutral-800
+           cursor-pointer transition-colors duration-200;
+  }
+
+  .track-item.active {
+    @apply bg-gray-200 dark:bg-neutral-700;
+  }
+
+  /* Playlist grid */
+  .playlist-grid {
+    @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-citrus-accent to-orange-400 bg-clip-text text-transparent;
+  }
+
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+}
+
+/* Range input styling */
+input[type="range"] {
+  @apply appearance-none bg-transparent cursor-pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+  @apply h-1 rounded-full bg-gray-200 dark:bg-neutral-700;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  @apply appearance-none w-3 h-3 rounded-full bg-citrus-accent mt-[-4px]
+         hover:scale-125 transition-transform;
+}
+
+input[type="range"]::-moz-range-track {
+  @apply h-1 rounded-full bg-gray-200 dark:bg-neutral-700;
+}
+
+input[type="range"]::-moz-range-thumb {
+  @apply appearance-none w-3 h-3 rounded-full bg-citrus-accent border-0
+         hover:scale-125 transition-transform;
+}
