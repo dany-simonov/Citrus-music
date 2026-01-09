@@ -84,10 +84,10 @@ export function Player() {
                style={{ left: `calc(${duration ? (progress / duration) * 100 : 0}% - 6px)` }} />
         </div>
 
-        <div className="h-24 px-6 flex items-center justify-between">
+        <div className="h-20 md:h-24 px-3 md:px-6 flex items-center justify-between gap-2 md:gap-4">
           {/* Информация о треке */}
-          <div className="flex items-center gap-4 min-w-0 w-1/4">
-            <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 dark:bg-neutral-800 flex-shrink-0 shadow-lg">
+          <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1 md:w-1/4 md:flex-none">
+            <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl overflow-hidden bg-gray-100 dark:bg-neutral-800 flex-shrink-0 shadow-lg">
               {currentTrack.coverUrl ? (
                 <Image
                   src={currentTrack.coverUrl}
@@ -97,42 +97,42 @@ export function Player() {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <ListMusic className="w-7 h-7 text-gray-400" />
+                  <ListMusic className="w-5 h-5 md:w-7 md:h-7 text-gray-400" />
                 </div>
               )}
             </div>
-            <div className="min-w-0">
-              <p className="font-semibold truncate text-base">{currentTrack.title}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{currentTrack.artist}</p>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold truncate text-sm md:text-base">{currentTrack.title}</p>
+              <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 truncate">{currentTrack.artist}</p>
             </div>
-            <Button variant="icon" className="w-10 h-10 flex-shrink-0 text-gray-400 hover:text-red-500">
-              <Heart className="w-5 h-5" />
+            <Button variant="icon" className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 text-gray-400 hover:text-red-500 hidden sm:flex">
+              <Heart className="w-4 h-4 md:w-5 md:h-5" />
             </Button>
           </div>
 
           {/* Контролы воспроизведения */}
-          <div className="flex flex-col items-center gap-3 w-2/4">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col items-center gap-1 md:gap-3 md:w-2/4">
+            <div className="flex items-center gap-1 md:gap-3">
               <Button
                 variant="icon"
                 onClick={toggleShuffle}
                 className={cn(
-                  'w-10 h-10',
+                  'w-8 h-8 md:w-10 md:h-10 hidden sm:flex',
                   isShuffled && 'text-orange-500'
                 )}
               >
-                <Shuffle className="w-5 h-5" />
+                <Shuffle className="w-4 h-4 md:w-5 md:h-5" />
               </Button>
 
-              <Button variant="icon" onClick={previous} className="w-12 h-12 hover:scale-105 transition-transform">
-                <SkipBack className="w-6 h-6" />
+              <Button variant="icon" onClick={previous} className="w-10 h-10 md:w-12 md:h-12 hover:scale-105 transition-transform">
+                <SkipBack className="w-5 h-5 md:w-6 md:h-6" />
               </Button>
 
               <Button
                 variant="icon"
                 onClick={togglePlay}
                 disabled={isLoading}
-                className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl shadow-orange-500/30 hover:shadow-orange-500/40 hover:scale-105 active:scale-95 transition-all"
+                className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl shadow-orange-500/30 hover:shadow-orange-500/40 hover:scale-105 active:scale-95 transition-all"
               >
                 {isLoading ? (
                   <svg
@@ -156,34 +156,34 @@ export function Player() {
                     />
                   </svg>
                 ) : isPlaying ? (
-                  <Pause className="w-7 h-7" />
+                  <Pause className="w-6 h-6 md:w-7 md:h-7" />
                 ) : (
-                  <Play className="w-7 h-7 ml-1" />
+                  <Play className="w-6 h-6 md:w-7 md:h-7 ml-0.5 md:ml-1" />
                 )}
               </Button>
 
-              <Button variant="icon" onClick={next} className="w-12 h-12 hover:scale-105 transition-transform">
-                <SkipForward className="w-6 h-6" />
+              <Button variant="icon" onClick={next} className="w-10 h-10 md:w-12 md:h-12 hover:scale-105 transition-transform">
+                <SkipForward className="w-5 h-5 md:w-6 md:h-6" />
               </Button>
 
               <Button
                 variant="icon"
                 onClick={toggleRepeat}
                 className={cn(
-                  'w-10 h-10',
+                  'w-8 h-8 md:w-10 md:h-10 hidden sm:flex',
                   repeatMode !== RepeatMode.OFF && 'text-orange-500'
                 )}
               >
                 {repeatMode === RepeatMode.ONE ? (
-                  <Repeat1 className="w-5 h-5" />
+                  <Repeat1 className="w-4 h-4 md:w-5 md:h-5" />
                 ) : (
-                  <Repeat className="w-5 h-5" />
+                  <Repeat className="w-4 h-4 md:w-5 md:h-5" />
                 )}
               </Button>
             </div>
 
             {/* Время */}
-            <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
+            <div className="hidden md:flex items-center gap-2 text-xs text-gray-500 font-medium">
               <span className="min-w-[36px] text-right">{formatDuration(progress)}</span>
               <span className="text-gray-300 dark:text-gray-600">/</span>
               <span className="min-w-[36px]">{formatDuration(duration)}</span>
@@ -191,7 +191,7 @@ export function Player() {
           </div>
 
           {/* Громкость */}
-          <div className="flex items-center gap-3 justify-end w-1/4">
+          <div className="hidden md:flex items-center gap-3 justify-end w-1/4">
             <Button variant="icon" onClick={toggleMute} className="w-10 h-10">
               {isMuted || volume === 0 ? (
                 <VolumeX className="w-5 h-5" />

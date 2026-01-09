@@ -19,11 +19,9 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Sidebar */}
       <Sidebar />
 
-      {/* Main content */}
-      <main className="ml-64 pb-24">
-        <div className="max-w-7xl mx-auto p-6">
-          {children}
-        </div>
+      {/* Main content - adaptive margin */}
+      <main className="lg:ml-64 xl:ml-72 pb-24 pt-16 lg:pt-0 min-h-screen">
+        {children}
       </main>
 
       {/* Player */}

@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
+import { MusicSource } from '@/types/audio';
 import { 
   Settings, 
   Key, 
@@ -87,7 +88,8 @@ export default function SettingsPage() {
         id: String(user.id),
         firstName: user.first_name,
         lastName: user.last_name,
-        photoUrl: user.photo_200,
+        avatarUrl: user.photo_200,
+        source: MusicSource.VK,
       });
 
       setSaveStatus('success');
@@ -147,9 +149,9 @@ export default function SettingsPage() {
           {/* Connected user info */}
           {vkUser && (
             <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl mb-6">
-              {vkUser.photoUrl ? (
+              {vkUser.avatarUrl ? (
                 <Image
-                  src={vkUser.photoUrl}
+                  src={vkUser.avatarUrl}
                   alt={vkUser.firstName}
                   width={48}
                   height={48}
@@ -291,9 +293,9 @@ export default function SettingsPage() {
 
           {yandexUser ? (
             <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl">
-              {yandexUser.photoUrl ? (
+              {yandexUser.avatarUrl ? (
                 <Image
-                  src={yandexUser.photoUrl}
+                  src={yandexUser.avatarUrl}
                   alt={yandexUser.firstName}
                   width={48}
                   height={48}

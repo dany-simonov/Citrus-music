@@ -1,7 +1,8 @@
 {
-  "/playlists/page": "app/playlists/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/settings/page": "app/settings/page.js",
   "/favorites/page": "app/favorites/page.js",
-  "/search/page": "app/search/page.js",
-  "/login/page": "app/login/page.js",
+  "/library/page": "app/library/page.js",
+  "/playlists/page": "app/playlists/page.js",
   "/history/page": "app/history/page.js"
 }

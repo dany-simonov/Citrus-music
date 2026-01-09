@@ -251,6 +251,8 @@ export function TrackMenu({
               );
             }
 
+            if (!('icon' in item) || !item.icon) return null;
+            
             const Icon = item.icon;
             
             return (
