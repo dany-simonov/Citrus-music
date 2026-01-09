@@ -5,72 +5,125 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuthStore } from '@/store/auth';
+import { useHistoryStore, HistoryItem } from '@/store/history';
+import { usePlayerStore } from '@/store/player';
 import { TrackItem } from '@/components/track/track-item';
 import { 
   Clock, 
-  Loader2,
   Music2,
   Trash2,
-  Calendar
+  Calendar,
+  TrendingUp,
+  Search,
+  X
 } from 'lucide-react';
 import Link from 'next/link';
 
-type SourceTab = 'all' | 'vk' | 'yandex';
+type ViewMode = 'recent' | 'mostPlayed';
 
 export default function HistoryPage() {
   const { vkTokens, yandexTokens } = useAuthStore();
-  const [activeSource, setActiveSource] = useState<SourceTab>('all');
+  const { items, clearHistory, removeFromHistory, getMostPlayed } = useHistoryStore();
+  const { playPlaylist } = usePlayerStore();
+  const [viewMode, setViewMode] = useState<ViewMode>('recent');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const isVKConnected = !!vkTokens?.accessToken;
   const isYandexConnected = !!yandexTokens?.accessToken;
   const hasAnyConnection = isVKConnected || isYandexConnected;
 
-  // TODO: Implement history fetching/tracking
-  const isLoading = false;
-  const history: any[] = [];
+  // Группировка истории по дате
+  const groupedHistory = useMemo(() => {
+    const filteredItems = searchQuery.trim() 
+      ? items.filter(item => 
+          item.track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.track.artist.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : items;
 
-  const sourceTabs = [
-    { id: 'all' as SourceTab, label: 'Все' },
-    ...(isVKConnected ? [{ id: 'vk' as SourceTab, label: 'VK' }] : []),
-    ...(isYandexConnected ? [{ id: 'yandex' as SourceTab, label: 'Яндекс' }] : []),
-  ];
-
-  // Group history by date
-  const groupedHistory: { [key: string]: any[] } = {};
-  history.forEach((item) => {
-    const date = new Date(item.playedAt).toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
+    const groups: { [key: string]: HistoryItem[] } = {};
+    
+    filteredItems.forEach((item) => {
+      const date = new Date(item.playedAt);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      let dateKey: string;
+      
+      if (date.toDateString() === today.toDateString()) {
+        dateKey = 'Сегодня';
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        dateKey = 'Вчера';
+      } else {
+        dateKey = date.toLocaleDateString('ru-RU', {
+          day: 'numeric',
+          month: 'long',
+          year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
+        });
+      }
+      
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+      }
+      groups[dateKey].push(item);
     });
-    if (!groupedHistory[date]) {
-      groupedHistory[date] = [];
-    }
-    groupedHistory[date].push(item);
-  });
+    
+    return groups;
+  }, [items, searchQuery]);
+
+  // Самые прослушиваемые треки
+  const mostPlayed = useMemo(() => {
+    const filtered = searchQuery.trim()
+      ? getMostPlayed(50).filter(item =>
+          item.track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.track.artist.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : getMostPlayed(50);
+    return filtered;
+  }, [getMostPlayed, searchQuery]);
+
+  const handlePlayTrack = (item: HistoryItem, allItems: HistoryItem[]) => {
+    const tracks = allItems.map(i => i.track);
+    const index = allItems.findIndex(i => i.track.id === item.track.id);
+    playPlaylist(tracks, index);
+  };
+
+  const handleRemoveTrack = (trackId: string) => {
+    removeFromHistory(trackId);
+  };
+
+  const formatPlayCount = (count: number) => {
+    if (count === 1) return '1 прослушивание';
+    if (count < 5) return `${count} прослушивания`;
+    return `${count} прослушиваний`;
+  };
 
   return (
-    <div className="flex-1 overflow-auto">
-      <div className="p-8">
+    <div className="flex-1 overflow-auto pb-32">
+      <div className="p-4 md:p-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25">
-              <Clock className="w-7 h-7 text-white" />
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25">
+              <Clock className="w-6 h-6 md:w-7 md:h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">История</h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-1">
-                {history.length} прослушанных треков
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">История</h1>
+              <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base mt-0.5">
+                {items.length} прослушанных треков
               </p>
             </div>
           </div>
 
-          {history.length > 0 && (
-            <button className="px-5 py-3 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded-2xl font-medium transition-colors flex items-center gap-2 text-red-500">
-              <Trash2 className="w-5 h-5" />
+          {items.length > 0 && (
+            <button 
+              onClick={clearHistory}
+              className="px-4 md:px-5 py-2.5 md:py-3 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded-xl md:rounded-2xl font-medium transition-colors flex items-center gap-2 text-red-500 text-sm md:text-base"
+            >
+              <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
               Очистить
             </button>
           )}
@@ -78,84 +131,155 @@ export default function HistoryPage() {
 
         {/* Not connected state */}
         {!hasAnyConnection && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 rounded-3xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mb-6">
-              <Music2 className="w-10 h-10 text-gray-400" />
+          <div className="flex flex-col items-center justify-center py-12 md:py-20 text-center">
+            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mb-4 md:mb-6">
+              <Music2 className="w-8 h-8 md:w-10 md:h-10 text-gray-400" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Подключите музыку</h2>
-            <p className="text-gray-500 mb-8 max-w-md">
+            <h2 className="text-xl md:text-2xl font-bold mb-2">Подключите музыку</h2>
+            <p className="text-gray-500 mb-6 md:mb-8 max-w-md px-4 text-sm md:text-base">
               Войдите через VK или Яндекс, чтобы отслеживать историю прослушивания
             </p>
             <Link
               href="/login"
-              className="px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all"
+              className="px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl md:rounded-2xl font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all text-sm md:text-base"
             >
               Войти
             </Link>
           </div>
         )}
 
-        {/* Source tabs */}
-        {hasAnyConnection && sourceTabs.length > 1 && (
-          <div className="flex gap-2 mb-6 p-1.5 bg-gray-100 dark:bg-neutral-800 rounded-2xl w-fit">
-            {sourceTabs.map((tab) => (
+        {/* Search and view mode */}
+        {hasAnyConnection && items.length > 0 && (
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Поиск в истории..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-10 py-3 bg-gray-100 dark:bg-neutral-800 rounded-xl md:rounded-2xl text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4 text-gray-400" />
+                </button>
+              )}
+            </div>
+
+            {/* View mode tabs */}
+            <div className="flex gap-2 p-1.5 bg-gray-100 dark:bg-neutral-800 rounded-xl md:rounded-2xl w-fit">
               <button
-                key={tab.id}
-                onClick={() => setActiveSource(tab.id)}
-                className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
-                  activeSource === tab.id
+                onClick={() => setViewMode('recent')}
+                className={`px-4 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl font-medium transition-all flex items-center gap-2 text-sm ${
+                  viewMode === 'recent'
                     ? 'bg-white dark:bg-neutral-700 shadow-sm text-black dark:text-white'
                     : 'text-gray-500 hover:text-black dark:hover:text-white'
                 }`}
               >
-                {tab.label}
+                <Calendar className="w-4 h-4" />
+                Недавние
               </button>
-            ))}
+              <button
+                onClick={() => setViewMode('mostPlayed')}
+                className={`px-4 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl font-medium transition-all flex items-center gap-2 text-sm ${
+                  viewMode === 'mostPlayed'
+                    ? 'bg-white dark:bg-neutral-700 shadow-sm text-black dark:text-white'
+                    : 'text-gray-500 hover:text-black dark:hover:text-white'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4" />
+                Популярные
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Loading */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
+        {/* Empty state */}
+        {hasAnyConnection && items.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 md:py-20 text-center">
+            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mb-4 md:mb-6">
+              <Clock className="w-8 h-8 md:w-10 md:h-10 text-gray-400" />
+            </div>
+            <h2 className="text-xl md:text-2xl font-bold mb-2">История пуста</h2>
+            <p className="text-gray-500 max-w-md px-4 text-sm md:text-base">
+              Начните слушать музыку, и она появится здесь
+            </p>
           </div>
         )}
 
-        {/* History list */}
-        {hasAnyConnection && !isLoading && (
-          <>
-            {Object.keys(groupedHistory).length > 0 ? (
-              <div className="space-y-8">
-                {Object.entries(groupedHistory).map(([date, tracks]) => (
-                  <div key={date}>
-                    <div className="flex items-center gap-2 mb-4">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      <h2 className="text-sm font-medium text-gray-500">{date}</h2>
-                    </div>
-                    <div className="space-y-1">
-                      {tracks.map((track, index) => (
-                        <TrackItem
-                          key={`${track.id}-${index}`}
-                          track={track}
-                          index={index + 1}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
+        {/* Recent view */}
+        {hasAnyConnection && viewMode === 'recent' && items.length > 0 && (
+          <div className="space-y-6">
+            {Object.keys(groupedHistory).length === 0 && searchQuery ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mx-auto mb-4">
-                  <Clock className="w-8 h-8 text-gray-400" />
+                  <Search className="w-8 h-8 text-gray-400" />
                 </div>
-                <h2 className="text-xl font-bold mb-2">История пуста</h2>
+                <h2 className="text-xl font-bold mb-2">Ничего не найдено</h2>
                 <p className="text-gray-500">
-                  Начните слушать музыку, и она появится здесь
+                  Попробуйте изменить поисковый запрос
                 </p>
               </div>
+            ) : (
+              Object.entries(groupedHistory).map(([date, dateItems]) => (
+                <div key={date}>
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 px-2">
+                    {date}
+                  </h3>
+                  <div className="space-y-0.5 md:space-y-1">
+                    {dateItems.map((item) => (
+                      <TrackItem
+                        key={`${item.track.id}-${item.playedAt}`}
+                        track={item.track}
+                        onClick={() => handlePlayTrack(item, dateItems)}
+                        onRemove={() => handleRemoveTrack(item.track.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))
             )}
-          </>
+          </div>
+        )}
+
+        {/* Most played view */}
+        {hasAnyConnection && viewMode === 'mostPlayed' && items.length > 0 && (
+          <div className="space-y-0.5 md:space-y-1">
+            {mostPlayed.length === 0 && searchQuery ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-8 h-8 text-gray-400" />
+                </div>
+                <h2 className="text-xl font-bold mb-2">Ничего не найдено</h2>
+                <p className="text-gray-500">
+                  Попробуйте изменить поисковый запрос
+                </p>
+              </div>
+            ) : (
+              mostPlayed.map((item, index) => (
+                <div key={item.track.id} className="flex items-center gap-2">
+                  <span className="w-6 text-center text-sm font-bold text-gray-400">
+                    {index + 1}
+                  </span>
+                  <div className="flex-1">
+                    <TrackItem
+                      track={item.track}
+                      onClick={() => handlePlayTrack(item, mostPlayed)}
+                      onRemove={() => handleRemoveTrack(item.track.id)}
+                    />
+                  </div>
+                  <span className="text-xs text-gray-400 px-2 hidden sm:block">
+                    {formatPlayCount(item.playCount)}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
         )}
       </div>
     </div>

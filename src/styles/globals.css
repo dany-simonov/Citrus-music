@@ -189,14 +189,26 @@
     background-color: rgba(10, 10, 10, 0.8);
   }
 
-  /* Sidebar - Apple style */
+  /* Sidebar - Apple style with responsive */
   .sidebar {
     @apply fixed left-0 top-0 h-full 
-           w-72 
            backdrop-blur-2xl
            border-r border-gray-200/30 dark:border-neutral-800/50
            z-40;
     background-color: rgba(245, 245, 247, 0.95);
+  }
+
+  /* Desktop sidebar width */
+  @media (min-width: 1024px) {
+    .sidebar {
+      @apply w-64;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .sidebar {
+      @apply w-72;
+    }
   }
 
   .dark .sidebar {

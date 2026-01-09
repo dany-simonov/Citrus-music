@@ -72,10 +72,16 @@ export default function LoginPage() {
       const hashPart = vkUrl.includes('#') ? vkUrl.split('#')[1] : vkUrl;
       const tokens = handleVKCallback('#' + hashPart);
       
-      // Получаем информацию о пользователе
-      const response = await fetch(
-        `https://api.vk.com/method/users.get?access_token=${tokens.accessToken}&v=5.199&fields=photo_200`
-      );
+      // Получаем информацию о пользователе через прокси
+      const response = await fetch('/api/vk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: 'users.get',
+          params: { fields: 'photo_200' },
+          accessToken: tokens.accessToken,
+        }),
+      });
       const data = await response.json();
       
       if (data.response?.[0]) {

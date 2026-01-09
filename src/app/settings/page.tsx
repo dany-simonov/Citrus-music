@@ -54,10 +54,16 @@ export default function SettingsPage() {
     }
 
     try {
-      // Проверяем токен запросом к API
-      const response = await fetch(
-        `https://api.vk.com/method/users.get?access_token=${vkToken}&v=5.199&fields=photo_200`
-      );
+      // Проверяем токен запросом к API через прокси
+      const response = await fetch('/api/vk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: 'users.get',
+          params: { fields: 'photo_200' },
+          accessToken: vkToken,
+        }),
+      });
       const data = await response.json();
 
       if (data.error) {

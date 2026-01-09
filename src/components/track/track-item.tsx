@@ -7,8 +7,10 @@
 
 import { Track, PlayerState } from '@/types/audio';
 import { usePlayerStore } from '@/store/player';
+import { useHistoryStore } from '@/store/history';
 import { cn, formatDuration } from '@/lib/utils';
-import { Play, Pause, MoreHorizontal, ListMusic, Heart } from 'lucide-react';
+import { Play, Pause, Heart, ListMusic } from 'lucide-react';
+import { TrackMenu } from './track-menu';
 import Image from 'next/image';
 
 interface TrackItemProps {
@@ -16,7 +18,9 @@ interface TrackItemProps {
   index?: number;
   showIndex?: boolean;
   onClick?: () => void;
+  onRemove?: () => void;
   className?: string;
+  compact?: boolean;
 }
 
 export function TrackItem({ 
@@ -24,9 +28,12 @@ export function TrackItem({
   index, 
   showIndex = false, 
   onClick,
-  className 
+  onRemove,
+  className,
+  compact = false,
 }: TrackItemProps) {
-  const { currentTrack, playerState, togglePlay } = usePlayerStore();
+  const { currentTrack, playerState, togglePlay, addToQueue, playPlaylist } = usePlayerStore();
+  const { addToHistory } = useHistoryStore();
   
   const isCurrentTrack = currentTrack?.id === track.id;
   const isPlaying = isCurrentTrack && playerState === PlayerState.PLAYING;
@@ -34,16 +41,29 @@ export function TrackItem({
   const handleClick = () => {
     if (isCurrentTrack) {
       togglePlay();
+    } else if (onClick) {
+      onClick();
     } else {
-      onClick?.();
+      // Воспроизводим трек и добавляем в историю
+      playPlaylist([track], 0);
+      addToHistory(track);
     }
+  };
+
+  const handlePlay = () => {
+    playPlaylist([track], 0);
+    addToHistory(track);
+  };
+
+  const handleAddToQueue = () => {
+    addToQueue(track, 'user');
   };
 
   return (
     <div
       onClick={handleClick}
       className={cn(
-        'group flex items-center gap-4 p-3 rounded-2xl cursor-pointer',
+        'group flex items-center gap-3 md:gap-4 p-2 md:p-3 rounded-xl md:rounded-2xl cursor-pointer',
         'hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200',
         isCurrentTrack && 'bg-orange-50 dark:bg-orange-900/20',
         !track.isAvailable && 'opacity-50 cursor-not-allowed',
@@ -51,7 +71,7 @@ export function TrackItem({
       )}
     >
       {/* Номер/иконка воспроизведения */}
-      <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 relative">
+      <div className="w-6 md:w-8 h-6 md:h-8 flex items-center justify-center flex-shrink-0 relative">
         {isPlaying ? (
           <div className="w-5 h-5 flex items-center justify-center">
             {/* Анимация эквалайзера */}
@@ -62,15 +82,15 @@ export function TrackItem({
             </div>
           </div>
         ) : isCurrentTrack ? (
-          <Pause className="w-5 h-5 text-orange-500" />
+          <Pause className="w-4 md:w-5 h-4 md:h-5 text-orange-500" />
         ) : showIndex && index !== undefined ? (
-          <span className="text-sm text-gray-400 font-medium group-hover:opacity-0 transition-opacity">{index + 1}</span>
+          <span className="text-xs md:text-sm text-gray-400 font-medium group-hover:opacity-0 transition-opacity">{index + 1}</span>
         ) : null}
         
         {/* Play при наведении */}
-        {!isCurrentTrack && track.isAvailable && (
+        {!isCurrentTrack && track.isAvailable !== false && (
           <Play className={cn(
-            'w-5 h-5 text-black dark:text-white absolute',
+            'w-4 md:w-5 h-4 md:h-5 text-black dark:text-white absolute',
             showIndex && index !== undefined 
               ? 'opacity-0 group-hover:opacity-100 transition-opacity' 
               : 'opacity-0 group-hover:opacity-100'
@@ -79,7 +99,10 @@ export function TrackItem({
       </div>
 
       {/* Обложка */}
-      <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-gray-100 dark:bg-neutral-800 flex-shrink-0 shadow-sm group-hover:shadow-md transition-shadow">
+      <div className={cn(
+        'relative rounded-lg md:rounded-xl overflow-hidden bg-gray-100 dark:bg-neutral-800 flex-shrink-0 shadow-sm group-hover:shadow-md transition-shadow',
+        compact ? 'w-10 h-10' : 'w-10 h-10 md:w-12 md:h-12'
+      )}>
         {track.coverUrl ? (
           <Image
             src={track.coverUrl}
@@ -90,7 +113,7 @@ export function TrackItem({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <ListMusic className="w-5 h-5 text-gray-400" />
+            <ListMusic className="w-4 md:w-5 h-4 md:h-5 text-gray-400" />
           </div>
         )}
       </div>
@@ -98,16 +121,16 @@ export function TrackItem({
       {/* Информация о треке */}
       <div className="flex-1 min-w-0">
         <p className={cn(
-          'font-semibold truncate',
+          'font-semibold truncate text-sm md:text-base',
           isCurrentTrack ? 'text-orange-500' : 'text-black dark:text-white'
         )}>
           {track.title}
         </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{track.artist}</p>
+        <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 truncate">{track.artist}</p>
       </div>
 
       {/* Длительность */}
-      <div className="text-sm text-gray-400 flex-shrink-0 font-medium">
+      <div className="text-xs md:text-sm text-gray-400 flex-shrink-0 font-medium hidden sm:block">
         {formatDuration(track.duration)}
       </div>
 
@@ -118,28 +141,23 @@ export function TrackItem({
           // TODO: Добавить в избранное
         }}
         className={cn(
-          'p-2 rounded-xl opacity-0 group-hover:opacity-100',
+          'p-1.5 md:p-2 rounded-lg md:rounded-xl opacity-0 group-hover:opacity-100',
           'hover:bg-black/5 dark:hover:bg-white/10',
-          'transition-all duration-200 text-gray-400 hover:text-red-500'
+          'transition-all duration-200 text-gray-400 hover:text-red-500',
+          'hidden sm:block'
         )}
       >
         <Heart className="w-4 h-4" />
       </button>
 
       {/* Меню */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          // TODO: Открыть контекстное меню
-        }}
-        className={cn(
-          'p-2 rounded-xl opacity-0 group-hover:opacity-100',
-          'hover:bg-black/5 dark:hover:bg-white/10',
-          'transition-all duration-200'
-        )}
-      >
-        <MoreHorizontal className="w-4 h-4" />
-      </button>
+      <TrackMenu 
+        track={track}
+        onPlay={handlePlay}
+        onAddToQueue={handleAddToQueue}
+        onRemove={onRemove}
+        className="opacity-0 group-hover:opacity-100 transition-opacity"
+      />
     </div>
   );
 }
