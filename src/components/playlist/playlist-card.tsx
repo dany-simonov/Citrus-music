@@ -8,7 +8,7 @@
 import { Playlist } from '@/types/audio';
 import { cn } from '@/lib/utils';
 import { Play, MoreHorizontal, ListMusic } from 'lucide-react';
-import Image from 'next/image';
+import { SafeImage } from '@/components/ui/safe-image';
 import Link from 'next/link';
 
 interface PlaylistCardProps {
@@ -39,19 +39,14 @@ export function PlaylistCard({ playlist, onPlay, className }: PlaylistCardProps)
     >
       {/* Обложка */}
       <div className="relative aspect-square rounded-2xl overflow-hidden mb-4 bg-gray-100 dark:bg-neutral-800 shadow-lg group-hover:shadow-xl transition-shadow">
-        {playlist.coverUrl ? (
-          <Image
-            src={playlist.coverUrl}
-            alt={playlist.title}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-700 dark:to-neutral-800">
-            <ListMusic className="w-14 h-14 text-gray-400" />
-          </div>
-        )}
+        <SafeImage
+          src={playlist.coverUrl || ''}
+          alt={playlist.title}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+          fallbackType="playlist"
+        />
         
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

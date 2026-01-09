@@ -11,7 +11,7 @@ import { useHistoryStore } from '@/store/history';
 import { cn, formatDuration } from '@/lib/utils';
 import { Play, Pause, Heart, ListMusic } from 'lucide-react';
 import { TrackMenu } from './track-menu';
-import Image from 'next/image';
+import { SafeImage } from '@/components/ui/safe-image';
 
 interface TrackItemProps {
   track: Track;
@@ -103,19 +103,14 @@ export function TrackItem({
         'relative rounded-lg md:rounded-xl overflow-hidden bg-gray-100 dark:bg-neutral-800 flex-shrink-0 shadow-sm group-hover:shadow-md transition-shadow',
         compact ? 'w-10 h-10' : 'w-10 h-10 md:w-12 md:h-12'
       )}>
-        {track.coverUrl ? (
-          <Image
-            src={track.coverUrl}
-            alt={track.title}
-            fill
-            className="object-cover"
-            sizes="48px"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <ListMusic className="w-4 md:w-5 h-4 md:h-5 text-gray-400" />
-          </div>
-        )}
+        <SafeImage
+          src={track.coverUrl || ''}
+          alt={track.title}
+          fill
+          className="object-cover"
+          sizes="48px"
+          fallbackType="track"
+        />
       </div>
 
       {/* Информация о треке */}

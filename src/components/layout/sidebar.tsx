@@ -71,7 +71,7 @@ export function Sidebar({ className }: SidebarProps) {
         <Link href="/" className="flex items-center gap-3 group">
           <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl overflow-hidden shadow-lg group-hover:shadow-orange-500/40 transition-shadow">
             <Image 
-              src="/logo.png"
+              src="/logo1.png"
               alt="Цитрус"
               width={48}
               height={48}

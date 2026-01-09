@@ -120,15 +120,15 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="w-32 h-32 rounded-[2.5rem] bg-white/20 backdrop-blur-xl flex items-center justify-center mx-auto mb-10 shadow-2xl shadow-black/20 border border-white/20">
             <Image 
-              src="/logo.png" 
-              alt="Citrus Logo"
+              src="/logo1.png" 
+              alt="Цитрус Logo"
               width={80}
               height={80}
               className="w-20 h-20 object-contain"
               priority
             />
           </div>
-          <h1 className="text-5xl font-bold mb-4 tracking-tight">Citrus</h1>
+          <h1 className="text-5xl font-bold mb-4 tracking-tight">Цитрус</h1>
           <p className="text-xl opacity-90 font-medium">
             Вся ваша музыка в одном месте
           </p>
@@ -161,14 +161,14 @@ export default function LoginPage() {
           <div className="lg:hidden flex items-center gap-4 mb-10">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-citrus-accent to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
               <Image 
-                src="/logo.png" 
-                alt="Citrus Logo"
+                src="/logo1.png" 
+                alt="Цитрус Logo"
                 width={40}
                 height={40}
                 className="w-10 h-10 object-contain"
               />
             </div>
-            <span className="text-3xl font-bold text-gradient">Citrus</span>
+            <span className="text-3xl font-bold text-gradient">Цитрус</span>
           </div>
 
           <div className="mb-10">

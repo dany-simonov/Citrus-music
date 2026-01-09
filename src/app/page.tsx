@@ -30,7 +30,7 @@ export default function HomePage() {
           {/* Logo */}
           <div className="inline-flex items-center justify-center w-28 h-28 rounded-[2rem] bg-gradient-to-br from-orange-500 to-orange-600 mb-8 shadow-2xl shadow-orange-500/30">
             <Image 
-              src="/logo.png"
+              src="/logo1.png"
               alt="Citrus"
               width={64}
               height={64}

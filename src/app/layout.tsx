@@ -14,9 +14,9 @@ export const metadata: Metadata = {
   authors: [{ name: 'Цитрус Team' }],
   creator: 'Цитрус',
   icons: {
-    icon: '/logo.png',
-    shortcut: '/logo.png',
-    apple: '/logo.png',
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
   },
 };
 

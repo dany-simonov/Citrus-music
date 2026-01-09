@@ -84,7 +84,7 @@ export default function YandexCallbackPage() {
         {/* Logo */}
         <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-orange-500/30">
           <Image 
-            src="/logo.png"
+            src="/logo1.png"
             alt="Citrus"
             width={56}
             height={56}

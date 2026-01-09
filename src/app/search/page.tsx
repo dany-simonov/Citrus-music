@@ -292,10 +292,10 @@ export default function SearchPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {searchHistory.slice(0, 10).map((item, index) => (
-                    <button
+                    <div
                       key={`${item.query}-${index}`}
+                      className="group flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded-xl transition-all cursor-pointer"
                       onClick={() => handleHistoryClick(item)}
-                      className="group flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded-xl transition-all"
                     >
                       <Clock className="w-4 h-4 text-gray-400" />
                       <span className="text-sm font-medium">{item.query}</span>
@@ -305,7 +305,7 @@ export default function SearchPage() {
                       >
                         <X className="w-3.5 h-3.5 text-gray-400" />
                       </button>
-                    </button>
+                    </div>
                   ))}
                 </div>
               </section>
