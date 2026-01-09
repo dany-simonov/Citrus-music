@@ -57,19 +57,6 @@ export default function LoginPage() {
     initiateYandexAuth();
   };
       
-      // Редирект через 1.5 секунды
-      setTimeout(() => {
-        router.push('/');
-      }, 1500);
-      
-    } catch (err) {
-      console.error('Token error:', err);
-      setTokenError('Не удалось войти с этим токеном. Проверьте правильность.');
-    } finally {
-      setTokenLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-citrus-bg-light dark:bg-citrus-bg-dark flex">
       {/* Left side - decorative */}
@@ -173,67 +160,8 @@ export default function LoginPage() {
             >
               <YandexIcon className="w-6 h-6" />
               {isLoading ? 'Загрузка...' : 'Войти через Яндекс'}
-              <ExternalLink className="w-4 h-4 opacity-70" />
             </button>
           </div>
-
-          {/* Yandex Token Input Form */}
-          {showTokenInput && !tokenSuccess && (
-            <div className="mt-6 p-6 bg-orange-50 dark:bg-orange-900/10 rounded-2xl border border-orange-200 dark:border-orange-800/30 animate-scale-in">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                  <Key className="w-5 h-5 text-orange-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm">Шаг 2: Вставьте токен</h3>
-                  <p className="text-xs text-gray-500">Скопируйте токен со страницы Яндекса</p>
-                </div>
-              </div>
-              
-              {tokenError && (
-                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
-                  {tokenError}
-                </div>
-              )}
-              
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  value={yandexToken}
-                  onChange={(e) => setYandexToken(e.target.value)}
-                  placeholder="y0__xDqt..."
-                  className="w-full px-4 py-3 bg-white dark:bg-neutral-800 rounded-xl border border-gray-200 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-orange-500/50 font-mono text-sm"
-                />
-                <button
-                  onClick={handleTokenSubmit}
-                  disabled={tokenLoading || !yandexToken.trim()}
-                  className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {tokenLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Проверяем...
-                    </>
-                  ) : (
-                    'Подключить Яндекс Музыку'
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Success message */}
-          {tokenSuccess && (
-            <div className="mt-6 p-6 bg-green-50 dark:bg-green-900/10 rounded-2xl border border-green-200 dark:border-green-800/30 animate-scale-in">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-8 h-8 text-green-500" />
-                <div>
-                  <h3 className="font-semibold text-green-700 dark:text-green-400">Успешно!</h3>
-                  <p className="text-sm text-green-600 dark:text-green-500">Яндекс Музыка подключена. Перенаправляем...</p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Divider */}
           <div className="flex items-center gap-4 my-8">

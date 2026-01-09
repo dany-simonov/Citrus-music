@@ -8,38 +8,23 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
-import { yandexApiService, yandexAuthService } from '@/services/yandex';
+import { yandexApiService } from '@/services/yandex';
 import { MusicSource } from '@/types/audio';
-import { Music2, CheckCircle, XCircle, Loader2, Key } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
 export default function YandexCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { handleYandexCallback, setYandexUser, setYandexTokens } = useAuthStore();
+  const { handleYandexCallback, setYandexUser } = useAuthStore();
   
-  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'manual'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
-  const [manualToken, setManualToken] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const processCallback = async () => {
-      // Yandex использует implicit flow, токен в hash
+      // Yandex использует implicit flow, токен приходит в hash
       const hash = window.location.hash;
-      
-      // Если токен пришёл в hash - обрабатываем автоматически
-      if (hash && hash.includes('access_token')) {
-        try {
-          handleYandexCallback(hash);
-          await fetchUserAndRedirect();
-        } catch (err) {
-          console.error('Yandex callback error:', err);
-          setStatus('manual');
-          setErrorMessage('Не удалось автоматически обработать токен');
-        }
-        return;
-      }
       
       // Проверяем на ошибку в query params
       const error = searchParams.get('error');
@@ -50,63 +35,48 @@ export default function YandexCallbackPage() {
         setErrorMessage(errorDescription || error || 'Ошибка авторизации Yandex');
         return;
       }
+      
+      // Если токен пришёл в hash - обрабатываем
+      if (hash && hash.includes('access_token')) {
+        try {
+          // Парсим и сохраняем токен
+          handleYandexCallback(hash);
+          
+          // Получаем информацию о пользователе через Yandex ID API
+          const yandexUser = await yandexApiService.getCurrentUser();
+          
+          setYandexUser({
+            id: String(yandexUser.uid),
+            firstName: yandexUser.name || yandexUser.displayName || yandexUser.login,
+            lastName: '',
+            photoUrl: yandexUser.avatarUrl,
+            source: MusicSource.YANDEX,
+          });
 
-      // Если ничего нет - показываем форму ручного ввода
-      setStatus('manual');
+          setStatus('success');
+          
+          // Редирект на главную
+          setTimeout(() => {
+            router.push('/');
+          }, 1500);
+          
+        } catch (err) {
+          console.error('Yandex callback error:', err);
+          setStatus('error');
+          setErrorMessage(
+            err instanceof Error ? err.message : 'Произошла ошибка при авторизации'
+          );
+        }
+        return;
+      }
+
+      // Если нет токена и нет ошибки - что-то пошло не так
+      setStatus('error');
+      setErrorMessage('Не получен токен авторизации');
     };
 
     processCallback();
-  }, [searchParams]);
-
-  const fetchUserAndRedirect = async () => {
-    try {
-      const yandexUser = await yandexApiService.getCurrentUser();
-      
-      setYandexUser({
-        id: yandexUser.uid.toString(),
-        firstName: yandexUser.name || yandexUser.login,
-        lastName: '',
-        source: MusicSource.YANDEX,
-      });
-
-      setStatus('success');
-      
-      setTimeout(() => {
-        router.push('/');
-      }, 2000);
-    } catch (err) {
-      throw err;
-    }
-  };
-
-  const handleManualToken = async () => {
-    if (!manualToken.trim()) return;
-    
-    setIsProcessing(true);
-    
-    try {
-      // Сохраняем токен вручную
-      const tokens = {
-        accessToken: manualToken.trim(),
-        expiresIn: 365 * 24 * 60 * 60, // 1 год в секундах
-        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        userId: '',
-      };
-      
-      yandexAuthService.saveTokens(tokens);
-      setYandexTokens(tokens);
-      
-      await fetchUserAndRedirect();
-    } catch (err) {
-      console.error('Manual token error:', err);
-      setStatus('error');
-      setErrorMessage(
-        err instanceof Error ? err.message : 'Не удалось использовать токен'
-      );
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  }, [searchParams, handleYandexCallback, setYandexUser, router]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0A0A0A] flex items-center justify-center p-4">
@@ -135,66 +105,6 @@ export default function YandexCallbackPage() {
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-6" />
             <h1 className="text-2xl font-bold mb-2">Успешно!</h1>
             <p className="text-gray-500">Вы вошли через Яндекс. Перенаправляем...</p>
-          </div>
-        )}
-
-        {status === 'manual' && (
-          <div className="animate-fade-in">
-            <div className="w-16 h-16 rounded-2xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mx-auto mb-6">
-              <Key className="w-8 h-8 text-orange-500" />
-            </div>
-            <h1 className="text-2xl font-bold mb-2">Введите токен</h1>
-            <p className="text-gray-500 mb-6">
-              Скопируйте токен со страницы Яндекса и вставьте его ниже
-            </p>
-            
-            {errorMessage && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
-                {errorMessage}
-              </div>
-            )}
-            
-            <div className="space-y-4">
-              <input
-                type="text"
-                value={manualToken}
-                onChange={(e) => setManualToken(e.target.value)}
-                placeholder="Вставьте токен (y0__...)"
-                className="w-full px-5 py-4 bg-gray-100 dark:bg-neutral-800 rounded-2xl border border-gray-200 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-center font-mono text-sm"
-              />
-              
-              <button
-                onClick={handleManualToken}
-                disabled={isProcessing || !manualToken.trim()}
-                className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-2xl shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Проверяем...
-                  </>
-                ) : (
-                  'Войти с токеном'
-                )}
-              </button>
-              
-              <button
-                onClick={() => router.push('/login')}
-                className="w-full py-3 text-gray-500 hover:text-black dark:hover:text-white transition-colors"
-              >
-                Вернуться к выбору входа
-              </button>
-            </div>
-            
-            <div className="mt-8 p-4 bg-gray-50 dark:bg-neutral-900 rounded-2xl text-left">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">Как получить токен:</p>
-              <ol className="text-xs text-gray-500 space-y-1 list-decimal list-inside">
-                <li>Нажмите "Войти через Яндекс"</li>
-                <li>Разрешите доступ приложению</li>
-                <li>Скопируйте токен со страницы</li>
-                <li>Вставьте его в поле выше</li>
-              </ol>
-            </div>
           </div>
         )}
 

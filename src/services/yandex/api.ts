@@ -3,7 +3,6 @@
  * @module services/yandex/api
  */
 
-import { YANDEX_CONFIG } from '@/lib/config';
 import { yandexAuthService } from './auth';
 import type {
   YandexTrack,
@@ -17,14 +16,16 @@ import type {
 } from '@/types/yandex';
 
 /**
- * Класс для работы с Yandex Music API
+ * Класс для работы с Yandex API
+ * Использует Yandex ID API для получения информации о пользователе
  */
 export class YandexApiService {
   private static instance: YandexApiService;
-  private baseUrl: string;
+  private userInfoUrl: string;
   
   private constructor() {
-    this.baseUrl = YANDEX_CONFIG.API_URL;
+    // Yandex ID API для информации о пользователе
+    this.userInfoUrl = 'https://login.yandex.ru/info';
   }
   
   /**
@@ -38,43 +39,36 @@ export class YandexApiService {
   }
   
   /**
-   * Выполняет запрос к Yandex Music API
+   * Получает информацию о текущем пользователе через Yandex ID API
    */
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  public async getCurrentUser(): Promise<YandexUser> {
     const tokens = yandexAuthService.getTokens();
     if (!tokens) {
       throw new Error('Not authenticated with Yandex');
     }
     
-    const url = `${this.baseUrl}${endpoint}`;
-    
-    const response = await fetch(url, {
-      ...options,
+    const response = await fetch(this.userInfoUrl, {
       headers: {
         'Authorization': `OAuth ${tokens.accessToken}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        ...options.headers,
       },
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Yandex API Error: ${response.status} - ${errorText}`);
+      throw new Error(`Yandex ID API Error: ${response.status}`);
     }
     
     const data = await response.json();
-    return data.result || data;
-  }
-  
-  /**
-   * Получает информацию о текущем пользователе
-   */
-  public async getCurrentUser(): Promise<YandexUser> {
-    return this.request<YandexUser>('/account/status');
+    
+    // Преобразуем ответ Yandex ID в наш формат YandexUser
+    return {
+      uid: data.id,
+      login: data.login,
+      name: data.real_name || data.display_name || data.login,
+      displayName: data.display_name,
+      avatarUrl: data.default_avatar_id 
+        ? `https://avatars.yandex.net/get-yapic/${data.default_avatar_id}/islands-200`
+        : undefined,
+    } as YandexUser;
   }
   
   /**
