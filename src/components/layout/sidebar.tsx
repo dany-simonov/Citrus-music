@@ -69,16 +69,16 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Логотип */}
       <div className="p-4 lg:p-6 pb-4">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:shadow-orange-500/40 transition-shadow">
+          <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl overflow-hidden shadow-lg group-hover:shadow-orange-500/40 transition-shadow">
             <Image 
-              src="/logo.png"
-              alt="Citrus"
-              width={28}
-              height={28}
-              className="w-6 h-6 lg:w-7 lg:h-7 object-contain"
+              src="/logo1.png"
+              alt="Цитрус"
+              width={48}
+              height={48}
+              className="w-full h-full object-cover"
             />
           </div>
-          <span className="text-xl lg:text-2xl font-bold text-gradient">Citrus</span>
+          <span className="text-xl lg:text-2xl font-bold text-gradient">Цитрус</span>
         </Link>
       </div>
 
@@ -140,8 +140,8 @@ export function Sidebar({ className }: SidebarProps) {
         </nav>
       )}
 
-      {/* Нижняя часть - Аккаунт и Настройки */}
-      <div className="mt-auto p-3 lg:p-4 border-t border-gray-200/50 dark:border-neutral-800/50 space-y-2">
+      {/* Нижняя часть - Аккаунт и Настройки (выше плеера) */}
+      <div className="mt-auto p-3 lg:p-4 pb-32 border-t border-gray-200/50 dark:border-neutral-800/50 space-y-2">
         {/* Аккаунт */}
         {isAuthenticated && user ? (
           <Link

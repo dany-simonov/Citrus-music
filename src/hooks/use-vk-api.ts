@@ -58,8 +58,8 @@ export function useVKPlaylists(params?: VKPlaylistsParams) {
 
   return useQuery({
     queryKey: vkQueryKeys.playlistsList(params),
-    queryFn: () => vkApiService.getPlaylists(params),
-    enabled: isAuthenticated && !!vkTokens,
+    queryFn: () => vkApiService.getPlaylists(params || {}),
+    enabled: isAuthenticated && !!vkTokens && params !== undefined,
   });
 }
 
@@ -88,7 +88,7 @@ export function useVKSearch(query: string, params?: Omit<VKAudioSearchParams, 'q
   const { isAuthenticated, vkTokens } = useAuthStore();
 
   return useQuery({
-    queryKey: vkQueryKeys.search(query),
+    queryKey: [...vkQueryKeys.search(query), params],
     queryFn: () => vkApiService.searchAudio({ ...params, q: query }),
     enabled: isAuthenticated && !!vkTokens && query.length >= 2,
     staleTime: 30 * 1000, // 30 секунд

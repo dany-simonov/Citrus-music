@@ -21,7 +21,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
       {/* Main content - adaptive margin */}
       <main className="lg:ml-64 xl:ml-72 pb-28 pt-16 lg:pt-0 min-h-screen overflow-auto">
-        <div className="animate-fade-in">
+        <div className="animate-fade-in pr-4 lg:pr-6">
           {children}
         </div>
       </main>

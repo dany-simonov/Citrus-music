@@ -133,16 +133,31 @@ export const usePlayerStore = create<PlayerStore>()(
         }
       },
       
-      // Queue management
+      // Queue management - добавляет СЛЕДУЮЩИМ треком, лимит 30 треков
       addToQueue: (track, source = 'user') => {
         const item: QueueItem = {
           track,
           addedAt: new Date(),
           source,
         };
-        set((state) => ({
-          queue: [...state.queue, item],
-        }));
+        set((state) => {
+          const MAX_QUEUE_SIZE = 30;
+          const { queue, queueIndex } = state;
+          
+          // Вставляем трек сразу после текущего
+          const newQueue = [
+            ...queue.slice(0, queueIndex + 1),
+            item,
+            ...queue.slice(queueIndex + 1),
+          ];
+          
+          // Ограничиваем размер очереди (удаляем старые треки в конце)
+          const limitedQueue = newQueue.length > MAX_QUEUE_SIZE 
+            ? newQueue.slice(0, MAX_QUEUE_SIZE) 
+            : newQueue;
+          
+          return { queue: limitedQueue };
+        });
       },
       
       addMultipleToQueue: (tracks, source = 'playlist') => {
@@ -151,9 +166,24 @@ export const usePlayerStore = create<PlayerStore>()(
           addedAt: new Date(),
           source,
         }));
-        set((state) => ({
-          queue: [...state.queue, ...items],
-        }));
+        set((state) => {
+          const MAX_QUEUE_SIZE = 30;
+          const { queue, queueIndex } = state;
+          
+          // Вставляем треки сразу после текущего
+          const newQueue = [
+            ...queue.slice(0, queueIndex + 1),
+            ...items,
+            ...queue.slice(queueIndex + 1),
+          ];
+          
+          // Ограничиваем размер очереди
+          const limitedQueue = newQueue.length > MAX_QUEUE_SIZE 
+            ? newQueue.slice(0, MAX_QUEUE_SIZE) 
+            : newQueue;
+          
+          return { queue: limitedQueue };
+        });
       },
       
       removeFromQueue: (index) => {

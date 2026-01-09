@@ -31,12 +31,13 @@ export default function PlaylistsPage() {
   const hasAnyConnection = isVKConnected || isYandexConnected;
 
   // Fetch data from both sources
+  // VK API может получить плейлисты без owner_id - использует текущего пользователя
   const { 
     data: vkPlaylistsData, 
     isLoading: vkLoading 
   } = useVKPlaylists(
     isVKConnected && (activeSource === 'all' || activeSource === 'vk') 
-      ? { owner_id: Number(vkUser?.id) } 
+      ? vkUser?.id ? { owner_id: Number(vkUser.id) } : {}
       : undefined
   );
 

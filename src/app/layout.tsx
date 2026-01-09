@@ -8,13 +8,15 @@ import { Providers } from '@/components/providers';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
-  title: 'Citrus - Музыкальное приложение',
+  title: 'Цитрус - Музыкальное приложение',
   description: 'Слушайте музыку из ВКонтакте и Яндекс Музыки в одном месте',
   keywords: ['музыка', 'плеер', 'vk', 'яндекс музыка', 'стриминг'],
-  authors: [{ name: 'Citrus Team' }],
-  creator: 'Citrus',
+  authors: [{ name: 'Цитрус Team' }],
+  creator: 'Цитрус',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
   },
 };
 
