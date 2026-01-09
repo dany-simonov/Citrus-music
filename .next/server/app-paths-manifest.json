@@ -1,7 +1,5 @@
 {
   "/page": "app/page.js",
-  "/login/page": "app/login/page.js",
-  "/auth/yandex/callback/page": "app/auth/yandex/callback/page.js",
-  "/playlists/page": "app/playlists/page.js",
+  "/library/page": "app/library/page.js",
   "/favorites/page": "app/favorites/page.js"
 }
