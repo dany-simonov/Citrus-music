@@ -24,8 +24,10 @@ interface AuthState {
   
   // VK Actions
   initiateVKAuth: () => Promise<void>;
-  handleVKCallback: (code: string, state: string) => Promise<void>;
+  handleVKCallback: (hash: string) => void;
   setVKUser: (user: User) => void;
+  setVKTokens: (tokens: VKAuthTokens) => void;
+  clearVKAuth: () => void;
   logoutVK: () => void;
   
   // Yandex Actions
@@ -33,6 +35,7 @@ interface AuthState {
   handleYandexCallback: (hash: string) => void;
   setYandexUser: (user: User) => void;
   setYandexTokens: (tokens: YandexAuthTokens) => void;
+  clearYandexAuth: () => void;
   logoutYandex: () => void;
   
   // Common Actions
@@ -58,7 +61,8 @@ export const useAuthStore = create<AuthState>()(
       initiateVKAuth: async () => {
         try {
           set({ isLoading: true, error: null });
-          const authUrl = await vkAuthService.initiateAuth();
+          const authUrl = vkAuthService.initiateAuth();
+          // Простой редирект на страницу авторизации VK
           window.location.href = authUrl;
         } catch (error) {
           set({
@@ -68,15 +72,16 @@ export const useAuthStore = create<AuthState>()(
         }
       },
       
-      handleVKCallback: async (code: string, state: string) => {
+      handleVKCallback: (hash: string) => {
         try {
           set({ isLoading: true, error: null });
-          const tokens = await vkAuthService.handleCallback(code, state);
+          const tokens = vkAuthService.handleCallback(hash);
           set({
             vkTokens: tokens,
             isAuthenticated: true,
             isLoading: false,
           });
+          return tokens;
         } catch (error) {
           set({
             isLoading: false,
@@ -90,6 +95,26 @@ export const useAuthStore = create<AuthState>()(
         set({ 
           vkUser: { ...user, source: MusicSource.VK },
           user: { ...user, source: MusicSource.VK },
+          isAuthenticated: true,
+        });
+      },
+      
+      setVKTokens: (tokens: VKAuthTokens) => {
+        vkAuthService.saveTokens(tokens);
+        set({
+          vkTokens: tokens,
+          isAuthenticated: true,
+        });
+      },
+      
+      clearVKAuth: () => {
+        vkAuthService.logout();
+        const { yandexTokens, yandexUser } = get();
+        set({
+          vkTokens: null,
+          vkUser: null,
+          isAuthenticated: yandexTokens !== null,
+          user: yandexUser,
         });
       },
       
@@ -148,6 +173,17 @@ export const useAuthStore = create<AuthState>()(
         set({
           yandexTokens: tokens,
           isAuthenticated: true,
+        });
+      },
+      
+      clearYandexAuth: () => {
+        yandexAuthService.logout();
+        const { vkTokens, vkUser } = get();
+        set({
+          yandexTokens: null,
+          yandexUser: null,
+          isAuthenticated: vkTokens !== null,
+          user: vkUser,
         });
       },
       

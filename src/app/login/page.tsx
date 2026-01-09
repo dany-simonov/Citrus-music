@@ -5,10 +5,11 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
-import { ArrowLeft } from 'lucide-react';
+import { vkAuthService } from '@/services/vk';
+import { ArrowLeft, ExternalLink, Check, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -36,10 +37,15 @@ export default function LoginPage() {
     isAuthenticated, 
     isLoading, 
     error, 
-    initiateVKAuth, 
     initiateYandexAuth,
+    handleVKCallback,
+    setVKUser,
     clearError 
   } = useAuthStore();
+
+  const [vkStep, setVkStep] = useState<'idle' | 'waiting' | 'success'>('idle');
+  const [vkUrl, setVkUrl] = useState('');
+  const [vkError, setVkError] = useState('');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -47,9 +53,46 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router]);
 
-  const handleVKLogin = async () => {
+  const handleVKLogin = () => {
     clearError();
-    await initiateVKAuth();
+    setVkError('');
+    const authUrl = vkAuthService.initiateAuth();
+    window.open(authUrl, '_blank');
+    setVkStep('waiting');
+  };
+
+  const handleVKUrlSubmit = async () => {
+    if (!vkUrl.includes('access_token')) {
+      setVkError('URL должен содержать access_token');
+      return;
+    }
+    
+    try {
+      // Извлекаем hash часть (после #)
+      const hashPart = vkUrl.includes('#') ? vkUrl.split('#')[1] : vkUrl;
+      const tokens = handleVKCallback('#' + hashPart);
+      
+      // Получаем информацию о пользователе
+      const response = await fetch(
+        `https://api.vk.com/method/users.get?access_token=${tokens.accessToken}&v=5.199&fields=photo_200`
+      );
+      const data = await response.json();
+      
+      if (data.response?.[0]) {
+        const user = data.response[0];
+        setVKUser({
+          id: String(user.id),
+          firstName: user.first_name,
+          lastName: user.last_name,
+          photoUrl: user.photo_200,
+        });
+      }
+      
+      setVkStep('success');
+      setTimeout(() => router.push('/'), 1000);
+    } catch (err) {
+      setVkError(err instanceof Error ? err.message : 'Ошибка авторизации');
+    }
   };
 
   const handleYandexLogin = () => {
@@ -136,32 +179,89 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Login buttons */}
-          <div className="space-y-4">
+          {/* VK Login */}
+          {vkStep === 'idle' && (
             <button
               onClick={handleVKLogin}
               disabled={isLoading}
               className="w-full flex items-center justify-center gap-3 px-6 py-5 bg-[#0077FF] text-white rounded-2xl font-semibold 
                          hover:bg-[#0066DD] active:scale-[0.98] transition-all duration-200 
                          shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30
-                         disabled:opacity-70 disabled:cursor-not-allowed"
+                         disabled:opacity-70 disabled:cursor-not-allowed mb-4"
             >
               <VKIcon className="w-6 h-6" />
-              {isLoading ? 'Загрузка...' : 'Войти через ВКонтакте'}
+              Войти через ВКонтакте
             </button>
+          )}
 
-            <button
-              onClick={handleYandexLogin}
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-3 px-6 py-5 bg-[#FC3F1D] text-white rounded-2xl font-semibold 
-                         hover:bg-[#E33A1A] active:scale-[0.98] transition-all duration-200 
-                         shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30
-                         disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              <YandexIcon className="w-6 h-6" />
-              {isLoading ? 'Загрузка...' : 'Войти через Яндекс'}
-            </button>
-          </div>
+          {/* VK Step 2: Paste URL */}
+          {vkStep === 'waiting' && (
+            <div className="mb-4 p-5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-2xl animate-scale-in">
+              <div className="flex items-center gap-2 mb-3">
+                <ExternalLink className="w-5 h-5 text-blue-500" />
+                <span className="font-semibold text-blue-700 dark:text-blue-300">Шаг 2: Вставьте URL</span>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                После авторизации в VK скопируйте <strong>весь URL</strong> из адресной строки и вставьте сюда:
+              </p>
+              <input
+                type="text"
+                value={vkUrl}
+                onChange={(e) => {
+                  setVkUrl(e.target.value);
+                  setVkError('');
+                }}
+                placeholder="https://oauth.vk.com/blank.html#access_token=..."
+                className="w-full px-4 py-3 bg-white dark:bg-neutral-800 rounded-xl border-2 border-blue-200 dark:border-blue-800 focus:border-blue-500 focus:outline-none transition-colors text-sm font-mono mb-3"
+              />
+              {vkError && (
+                <p className="text-red-500 text-sm mb-3">{vkError}</p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleVKUrlSubmit}
+                  disabled={!vkUrl}
+                  className="flex-1 px-4 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Подтвердить
+                </button>
+                <button
+                  onClick={() => {
+                    setVkStep('idle');
+                    setVkUrl('');
+                    setVkError('');
+                  }}
+                  className="px-4 py-3 bg-gray-100 dark:bg-neutral-700 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-neutral-600 transition-colors"
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* VK Success */}
+          {vkStep === 'success' && (
+            <div className="mb-4 p-5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-2xl animate-scale-in">
+              <div className="flex items-center gap-3">
+                <Check className="w-6 h-6 text-green-500" />
+                <span className="font-semibold text-green-700 dark:text-green-300">Успешно! Перенаправляем...</span>
+                <Loader2 className="w-5 h-5 text-green-500 animate-spin ml-auto" />
+              </div>
+            </div>
+          )}
+
+          {/* Yandex Login */}
+          <button
+            onClick={handleYandexLogin}
+            disabled={isLoading || vkStep === 'waiting'}
+            className="w-full flex items-center justify-center gap-3 px-6 py-5 bg-[#FC3F1D] text-white rounded-2xl font-semibold 
+                       hover:bg-[#E33A1A] active:scale-[0.98] transition-all duration-200 
+                       shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30
+                       disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            <YandexIcon className="w-6 h-6" />
+            {isLoading ? 'Загрузка...' : 'Войти через Яндекс'}
+          </button>
 
           {/* Divider */}
           <div className="flex items-center gap-4 my-8">

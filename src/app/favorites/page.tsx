@@ -5,9 +5,13 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { TrackItem } from '@/components/track/track-item';
+import { vkApiService } from '@/services/vk';
+import { usePlayerStore } from '@/store/player';
+import type { Track } from '@/types/audio';
+import { MusicSource } from '@/types/audio';
 import { 
   Heart, 
   Loader2,
@@ -21,15 +25,63 @@ type SourceTab = 'all' | 'vk' | 'yandex';
 
 export default function FavoritesPage() {
   const { vkTokens, yandexTokens } = useAuthStore();
+  const { playPlaylist } = usePlayerStore();
   const [activeSource, setActiveSource] = useState<SourceTab>('all');
+  const [isLoading, setIsLoading] = useState(false);
+  const [favorites, setFavorites] = useState<Track[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const isVKConnected = !!vkTokens?.accessToken;
   const isYandexConnected = !!yandexTokens?.accessToken;
   const hasAnyConnection = isVKConnected || isYandexConnected;
 
-  // TODO: Implement favorites fetching from both services
-  const isLoading = false;
-  const favorites: any[] = [];
+  // Загружаем треки при монтировании
+  useEffect(() => {
+    const loadTracks = async () => {
+      if (!isVKConnected) return;
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const response = await vkApiService.getAudio({ count: 100 });
+        
+        // Преобразуем треки VK в наш формат
+        const tracks: Track[] = response.items.map((item) => ({
+          id: `vk_${item.id}`,
+          title: item.title,
+          artist: item.artist,
+          duration: item.duration,
+          coverUrl: item.album?.thumb?.photo_300 || item.album?.thumb?.photo_600,
+          audioUrl: item.url,
+          source: MusicSource.VK,
+          sourceId: String(item.id),
+        }));
+        
+        setFavorites(tracks);
+      } catch (err) {
+        console.error('Failed to load VK audio:', err);
+        setError(err instanceof Error ? err.message : 'Ошибка загрузки треков');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadTracks();
+  }, [isVKConnected]);
+
+  const handlePlayAll = () => {
+    if (favorites.length > 0) {
+      playPlaylist(favorites, 0);
+    }
+  };
+
+  const handleShuffle = () => {
+    if (favorites.length > 0) {
+      const shuffled = [...favorites].sort(() => Math.random() - 0.5);
+      playPlaylist(shuffled, 0);
+    }
+  };
 
   const sourceTabs = [
     { id: 'all' as SourceTab, label: 'Все' },
@@ -64,11 +116,17 @@ export default function FavoritesPage() {
           {/* Play buttons */}
           {favorites.length > 0 && (
             <div className="relative z-10 flex gap-3 mt-6">
-              <button className="px-8 py-4 bg-white text-black rounded-full font-semibold shadow-lg hover:scale-105 transition-transform flex items-center gap-2">
+              <button 
+                onClick={handlePlayAll}
+                className="px-8 py-4 bg-white text-black rounded-full font-semibold shadow-lg hover:scale-105 transition-transform flex items-center gap-2"
+              >
                 <Play className="w-5 h-5 fill-current" />
                 Слушать
               </button>
-              <button className="px-6 py-4 bg-white/20 backdrop-blur-sm text-white rounded-full font-semibold hover:bg-white/30 transition-colors flex items-center gap-2">
+              <button 
+                onClick={handleShuffle}
+                className="px-6 py-4 bg-white/20 backdrop-blur-sm text-white rounded-full font-semibold hover:bg-white/30 transition-colors flex items-center gap-2"
+              >
                 <Shuffle className="w-5 h-5" />
                 Перемешать
               </button>
@@ -121,6 +179,13 @@ export default function FavoritesPage() {
           </div>
         )}
 
+        {/* Error */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl text-red-600 dark:text-red-400">
+            {error}
+          </div>
+        )}
+
         {/* Favorites list */}
         {hasAnyConnection && !isLoading && (
           <>
@@ -134,7 +199,7 @@ export default function FavoritesPage() {
                   />
                 ))}
               </div>
-            ) : (
+            ) : !error && (
               <div className="text-center py-12">
                 <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mx-auto mb-4">
                   <Heart className="w-8 h-8 text-gray-400" />

@@ -53,16 +53,9 @@ export function Player() {
     setVolume(parseFloat(e.target.value));
   };
 
-  // Если нет трека, показываем минимальный плеер
+  // Если нет трека, не показываем плеер
   if (!currentTrack) {
-    return (
-      <>
-        <AudioController />
-        <div className="player-container h-24 flex items-center justify-center">
-          <p className="text-sm text-gray-400 dark:text-gray-500">Выберите трек для воспроизведения</p>
-        </div>
-      </>
-    );
+    return <AudioController />;
   }
 
   const isPlaying = playerState === PlayerState.PLAYING;

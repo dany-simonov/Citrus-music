@@ -1,5 +1,5 @@
 /**
- * Callback страница для VK OAuth
+ * Callback страница для VK OAuth (implicit flow)
  * @module app/auth/vk/callback/page
  */
 
@@ -8,9 +8,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
-import { vkApiService } from '@/services/vk';
 import { MusicSource } from '@/types/audio';
-import { Music2, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import Image from 'next/image';
 
 export default function VKCallbackPage() {
   const router = useRouter();
@@ -22,103 +22,121 @@ export default function VKCallbackPage() {
 
   useEffect(() => {
     const processCallback = async () => {
-      const code = searchParams.get('code');
-      const state = searchParams.get('state');
+      // VK implicit flow - токен приходит в hash
+      const hash = window.location.hash;
+      
+      // Проверяем на ошибку в query params
       const error = searchParams.get('error');
       const errorDescription = searchParams.get('error_description');
-
-      // Проверяем на ошибку от VK
+      
       if (error) {
         setStatus('error');
         setErrorMessage(errorDescription || error || 'Ошибка авторизации VK');
         return;
       }
+      
+      // Если токен пришёл в hash - обрабатываем
+      if (hash && hash.includes('access_token')) {
+        try {
+          // Парсим и сохраняем токен
+          const tokens = handleVKCallback(hash);
+          
+          // Получаем информацию о пользователе
+          const response = await fetch(
+            `https://api.vk.com/method/users.get?access_token=${tokens.accessToken}&v=5.199&fields=photo_200`
+          );
+          const data = await response.json();
+          
+          if (data.error) {
+            throw new Error(data.error.error_msg || 'Ошибка VK API');
+          }
+          
+          if (data.response?.[0]) {
+            const user = data.response[0];
+            setVKUser({
+              id: String(user.id),
+              firstName: user.first_name,
+              lastName: user.last_name,
+              photoUrl: user.photo_200,
+              source: MusicSource.VK,
+            });
+          }
 
-      // Проверяем наличие кода и state
-      if (!code || !state) {
-        setStatus('error');
-        setErrorMessage('Отсутствуют необходимые параметры авторизации');
+          setStatus('success');
+          
+          // Редирект на главную
+          setTimeout(() => {
+            router.push('/');
+          }, 1500);
+          
+        } catch (err) {
+          console.error('VK callback error:', err);
+          setStatus('error');
+          setErrorMessage(
+            err instanceof Error ? err.message : 'Произошла ошибка при авторизации'
+          );
+        }
         return;
       }
 
-      try {
-        // Обмениваем код на токены
-        await handleVKCallback(code, state);
-
-        // Получаем информацию о пользователе
-        const vkUser = await vkApiService.getCurrentUser();
-        
-        setVKUser({
-          id: vkUser.id.toString(),
-          firstName: vkUser.first_name,
-          lastName: vkUser.last_name,
-          avatarUrl: vkUser.photo_200 || vkUser.photo_100,
-          source: MusicSource.VK,
-        });
-
-        setStatus('success');
-        
-        // Редирект на главную через 2 секунды
-        setTimeout(() => {
-          router.push('/');
-        }, 2000);
-        
-      } catch (err) {
-        console.error('VK callback error:', err);
-        setStatus('error');
-        setErrorMessage(
-          err instanceof Error ? err.message : 'Произошла ошибка при авторизации'
-        );
-      }
+      // Если нет токена и нет ошибки - что-то пошло не так
+      setStatus('error');
+      setErrorMessage('Не получен токен авторизации');
     };
 
     processCallback();
   }, [searchParams, handleVKCallback, setVKUser, router]);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center p-4">
-      <div className="text-center max-w-md">
+    <div className="min-h-screen bg-white dark:bg-[#0A0A0A] flex items-center justify-center p-4">
+      <div className="text-center max-w-md w-full">
         {/* Logo */}
-        <div className="w-16 h-16 rounded-2xl bg-citrus-accent flex items-center justify-center mx-auto mb-6">
-          <Music2 className="w-8 h-8 text-white" />
+        <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-orange-500/30">
+          <Image 
+            src="/logo.png"
+            alt="Citrus"
+            width={56}
+            height={56}
+            className="w-14 h-14 object-contain"
+          />
         </div>
 
         {status === 'loading' && (
-          <>
-            <Loader2 className="w-12 h-12 text-citrus-accent animate-spin mx-auto mb-4" />
-            <h1 className="text-xl font-semibold mb-2">Авторизация...</h1>
-            <p className="text-gray-500">Подождите, мы подключаем ваш аккаунт VK</p>
-          </>
+          <div className="animate-fade-in">
+            <Loader2 className="w-12 h-12 text-orange-500 animate-spin mx-auto mb-6" />
+            <h1 className="text-2xl font-bold mb-2">Авторизация...</h1>
+            <p className="text-gray-500">Подключаем ваш аккаунт VK</p>
+          </div>
         )}
 
         {status === 'success' && (
-          <>
-            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-            <h1 className="text-xl font-semibold mb-2">Успешно!</h1>
-            <p className="text-gray-500">Вы успешно вошли в аккаунт. Перенаправляем...</p>
-          </>
+          <div className="animate-scale-in">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-6" />
+            <h1 className="text-2xl font-bold mb-2">Успешно!</h1>
+            <p className="text-gray-500">Вы вошли через VK. Перенаправляем...</p>
+          </div>
         )}
 
         {status === 'error' && (
-          <>
-            <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h1 className="text-xl font-semibold mb-2">Ошибка авторизации</h1>
-            <p className="text-gray-500 mb-6">{errorMessage}</p>
-            <div className="flex gap-3 justify-center">
+          <div className="animate-fade-in">
+            <XCircle className="w-16 h-16 text-red-500 mx-auto mb-6" />
+            <h1 className="text-2xl font-bold mb-2">Ошибка авторизации</h1>
+            <p className="text-gray-500 mb-8">{errorMessage}</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={() => router.push('/login')}
-                className="px-6 py-2 bg-citrus-accent text-white rounded-lg hover:bg-orange-600 transition-colors"
+                className="px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all"
               >
                 Попробовать снова
               </button>
               <button
                 onClick={() => router.push('/')}
-                className="px-6 py-2 bg-gray-100 dark:bg-neutral-800 rounded-lg hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors"
+                className="px-8 py-4 bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 rounded-2xl font-semibold hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors"
               >
                 На главную
               </button>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

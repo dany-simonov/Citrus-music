@@ -1,14 +1,15 @@
 /**
- * Сервис аутентификации VK OAuth 2.1
+ * Сервис аутентификации VK OAuth (Kate Mobile style - implicit flow)
  * @module services/vk/auth
  */
 
 import { VK_CONFIG, STORAGE_KEYS } from '@/lib/config';
-import { generatePKCE, generateRandomString, isBrowser } from '@/lib/utils';
-import type { VKAuthTokens, VKTokenResponse, PKCEParams } from '@/types/auth';
+import { generateRandomString, isBrowser } from '@/lib/utils';
+import type { VKAuthTokens } from '@/types/auth';
 
 /**
- * Класс для работы с VK OAuth 2.1 аутентификацией
+ * Класс для работы с VK OAuth аутентификацией (implicit flow)
+ * Использует Kate Mobile client_id для доступа к audio API
  */
 export class VKAuthService {
   private static instance: VKAuthService;
@@ -26,70 +27,64 @@ export class VKAuthService {
   }
   
   /**
-   * Инициирует процесс авторизации VK OAuth 2.1
-   * @returns URL для редиректа на страницу авторизации VK
+   * Инициирует процесс авторизации VK OAuth (implicit flow)
+   * @returns URL для открытия в новом окне
    */
-  public async initiateAuth(): Promise<string> {
+  public initiateAuth(): string {
     if (!isBrowser()) {
       throw new Error('VK auth can only be initiated in browser');
     }
     
-    // Генерируем PKCE параметры
-    const { codeVerifier, codeChallenge } = await generatePKCE();
-    const state = generateRandomString(32);
-    
-    // Сохраняем PKCE verifier и state для проверки после редиректа
-    const pkceParams: PKCEParams = {
-      codeVerifier,
-      codeChallenge,
-      state,
-    };
-    
-    sessionStorage.setItem(STORAGE_KEYS.PKCE_VERIFIER, codeVerifier);
-    sessionStorage.setItem(STORAGE_KEYS.OAUTH_STATE, state);
-    
-    // Формируем URL для авторизации
+    // Формируем URL для авторизации через старый VK OAuth (не VK ID)
+    // Используем Kate Mobile client_id (2685278) для доступа к audio API
     const params = new URLSearchParams({
       client_id: VK_CONFIG.APP_ID,
       redirect_uri: VK_CONFIG.REDIRECT_URI,
-      response_type: 'code',
+      response_type: 'token', // implicit flow - токен сразу в URL
       scope: VK_CONFIG.SCOPE,
-      state: state,
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
+      display: 'page',
+      v: '5.199',
     });
     
     return `${VK_CONFIG.OAUTH_URL}/authorize?${params.toString()}`;
   }
   
   /**
-   * Обрабатывает callback после авторизации VK
-   * @param code - Код авторизации
-   * @param state - State параметр для проверки
+   * Обрабатывает callback после авторизации VK (implicit flow)
+   * Токен приходит в hash части URL
+   * @param hash - hash часть URL с токеном
    */
-  public async handleCallback(code: string, state: string): Promise<VKAuthTokens> {
+  public handleCallback(hash: string): VKAuthTokens {
     if (!isBrowser()) {
       throw new Error('VK callback can only be handled in browser');
     }
     
-    // Проверяем state
-    const savedState = sessionStorage.getItem(STORAGE_KEYS.OAUTH_STATE);
-    if (state !== savedState) {
-      throw new Error('Invalid OAuth state. Possible CSRF attack.');
+    // Парсим hash параметры
+    const params = new URLSearchParams(hash.replace('#', ''));
+    
+    const accessToken = params.get('access_token');
+    const expiresIn = params.get('expires_in');
+    const userId = params.get('user_id');
+    const error = params.get('error');
+    const errorDescription = params.get('error_description');
+    
+    if (error) {
+      throw new Error(`VK auth error: ${errorDescription || error}`);
     }
     
-    // Получаем PKCE verifier
-    const codeVerifier = sessionStorage.getItem(STORAGE_KEYS.PKCE_VERIFIER);
-    if (!codeVerifier) {
-      throw new Error('PKCE verifier not found. Please restart authorization.');
+    if (!accessToken) {
+      throw new Error('No access token received from VK');
     }
     
-    // Обмениваем код на токены
-    const tokens = await this.exchangeCodeForTokens(code, codeVerifier);
-    
-    // Очищаем временные данные
-    sessionStorage.removeItem(STORAGE_KEYS.PKCE_VERIFIER);
-    sessionStorage.removeItem(STORAGE_KEYS.OAUTH_STATE);
+    // Kate Mobile токены не истекают (expires_in = 0)
+    const tokens: VKAuthTokens = {
+      accessToken,
+      expiresIn: parseInt(expiresIn || '0', 10),
+      expiresAt: expiresIn === '0' 
+        ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 год для "вечных" токенов
+        : new Date(Date.now() + parseInt(expiresIn || '86400', 10) * 1000),
+      userId: userId || '',
+    };
     
     // Сохраняем токены
     this.saveTokens(tokens);
@@ -98,101 +93,18 @@ export class VKAuthService {
   }
   
   /**
-   * Обмен кода авторизации на токены
-   */
-  private async exchangeCodeForTokens(code: string, codeVerifier: string): Promise<VKAuthTokens> {
-    // Используем API route для обмена кода на токен (чтобы скрыть client_secret)
-    const response = await fetch('/api/auth/vk/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        code,
-        code_verifier: codeVerifier,
-        redirect_uri: VK_CONFIG.REDIRECT_URI,
-      }),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to exchange code for tokens');
-    }
-    
-    const data: VKTokenResponse = await response.json();
-    
-    return {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresIn: data.expires_in,
-      expiresAt: new Date(Date.now() + data.expires_in * 1000),
-      userId: data.user_id.toString(),
-      deviceId: data.device_id,
-    };
-  }
-  
-  /**
-   * Обновление access token с помощью refresh token
-   */
-  public async refreshTokens(): Promise<VKAuthTokens> {
-    const currentTokens = this.getTokens();
-    if (!currentTokens?.refreshToken) {
-      throw new Error('No refresh token available');
-    }
-    
-    const response = await fetch('/api/auth/vk/refresh', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        refresh_token: currentTokens.refreshToken,
-      }),
-    });
-    
-    if (!response.ok) {
-      // Если refresh token недействителен, очищаем токены
-      this.clearTokens();
-      throw new Error('Failed to refresh tokens. Please re-authenticate.');
-    }
-    
-    const data: VKTokenResponse = await response.json();
-    
-    const tokens: VKAuthTokens = {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token || currentTokens.refreshToken,
-      expiresIn: data.expires_in,
-      expiresAt: new Date(Date.now() + data.expires_in * 1000),
-      userId: data.user_id.toString(),
-      deviceId: data.device_id || currentTokens.deviceId,
-    };
-    
-    this.saveTokens(tokens);
-    
-    return tokens;
-  }
-  
-  /**
-   * Проверяет и при необходимости обновляет токены
+   * Проверяет и возвращает валидные токены
    */
   public async ensureValidTokens(): Promise<VKAuthTokens | null> {
     const tokens = this.getTokens();
     if (!tokens) return null;
     
-    // Проверяем, не истек ли токен (с запасом 5 минут)
+    // Kate Mobile токены обычно не истекают
     const now = new Date();
     const expiresAt = new Date(tokens.expiresAt);
-    const threshold = 5 * 60 * 1000; // 5 минут
     
-    if (expiresAt.getTime() - now.getTime() < threshold) {
-      // Токен скоро истечёт, пробуем обновить
-      if (tokens.refreshToken) {
-        try {
-          return await this.refreshTokens();
-        } catch {
-          return null;
-        }
-      }
+    if (expiresAt <= now) {
+      this.clearTokens();
       return null;
     }
     
@@ -218,7 +130,6 @@ export class VKAuthService {
     
     try {
       const tokens = JSON.parse(stored);
-      // Преобразуем строку даты обратно в Date
       tokens.expiresAt = new Date(tokens.expiresAt);
       return tokens;
     } catch {
