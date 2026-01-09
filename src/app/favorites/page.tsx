@@ -301,8 +301,20 @@ export default function FavoritesPage() {
 
         {/* Error */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl md:rounded-2xl text-red-600 dark:text-red-400 text-sm md:text-base">
-            {error}
+          <div className="mb-6 p-4 md:p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl md:rounded-2xl">
+            <p className="text-red-600 dark:text-red-400 text-sm md:text-base mb-3">
+              {error}
+            </p>
+            <button
+              onClick={() => {
+                setError(null);
+                setIsLoading(true);
+                window.location.reload();
+              }}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              Повторить попытку
+            </button>
           </div>
         )}
 

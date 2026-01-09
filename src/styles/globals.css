@@ -178,11 +178,25 @@
 
   /* Player Container - Glassmorphism */
   .player-container {
-    @apply fixed bottom-0 left-0 right-0 
+    @apply fixed bottom-0 right-0
            backdrop-blur-2xl
            border-t border-gray-200/30 dark:border-neutral-800/50
            z-50;
+    left: 0;
     background-color: rgba(255, 255, 255, 0.8);
+  }
+
+  /* Desktop: player starts after sidebar */
+  @media (min-width: 1024px) {
+    .player-container {
+      left: 16rem; /* w-64 = 256px = 16rem */
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .player-container {
+      left: 18rem; /* w-72 = 288px = 18rem */
+    }
   }
 
   .dark .player-container {

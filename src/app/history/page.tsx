@@ -105,28 +105,38 @@ export default function HistoryPage() {
   return (
     <MainLayout>
       <div className="p-4 md:p-8 pb-32">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25">
-              <Clock className="w-6 h-6 md:w-7 md:h-7 text-white" />
+        {/* Header with gradient - как у избранного */}
+        <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-500 p-6 md:p-8 mb-6 md:mb-8 overflow-hidden">
+          {/* Background pattern */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-0 right-0 w-32 md:w-64 h-32 md:h-64 rounded-full bg-white blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-48 md:w-96 h-48 md:h-96 rounded-full bg-white blur-3xl" />
+          </div>
+          
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-end gap-4 md:gap-6">
+            <div className="w-24 h-24 md:w-40 md:h-40 rounded-xl md:rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center shadow-2xl mx-auto sm:mx-0">
+              <Clock className="w-12 h-12 md:w-20 md:h-20 text-white" />
             </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">История</h1>
-              <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base mt-0.5">
+            <div className="flex-1 text-white text-center sm:text-left pb-2">
+              <p className="text-xs md:text-sm font-medium opacity-80 mb-1">Коллекция</p>
+              <h1 className="text-2xl md:text-4xl font-bold mb-2">История</h1>
+              <p className="opacity-80 text-sm md:text-base">
                 {items.length} прослушанных треков
               </p>
             </div>
           </div>
 
+          {/* Clear button */}
           {items.length > 0 && (
-            <button 
-              onClick={clearHistory}
-              className="px-4 md:px-5 py-2.5 md:py-3 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded-xl md:rounded-2xl font-medium transition-colors flex items-center gap-2 text-red-500 text-sm md:text-base"
-            >
-              <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
-              Очистить
-            </button>
+            <div className="relative z-10 flex gap-3 mt-6 justify-center sm:justify-start">
+              <button 
+                onClick={clearHistory}
+                className="px-5 md:px-6 py-3 md:py-4 bg-white/20 backdrop-blur-sm text-white rounded-full font-semibold hover:bg-white/30 transition-colors flex items-center gap-2 text-sm md:text-base"
+              >
+                <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                Очистить историю
+              </button>
+            </div>
           )}
         </div>
 

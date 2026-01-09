@@ -64,7 +64,7 @@ export default function PlaylistsPage() {
     if ((activeSource === 'all' || activeSource === 'vk') && vkPlaylists && vkPlaylists.length > 0) {
       vkPlaylists.forEach((p: any) => {
         allPlaylists.push({
-          id: `vk-${p.id}`,
+          id: `vk_${p.owner_id}_${p.id}`,
           title: p.title,
           cover: p.photo?.photo_300 || p.thumbs?.[0]?.photo_300,
           trackCount: p.count,
@@ -99,39 +99,49 @@ export default function PlaylistsPage() {
   return (
     <MainLayout>
       <div className="p-4 md:p-8 pb-32">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/25">
-              <ListMusic className="w-7 h-7 text-white" />
+        {/* Header with gradient - как у избранного */}
+        <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 p-6 md:p-8 mb-6 md:mb-8 overflow-hidden">
+          {/* Background pattern */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-0 right-0 w-32 md:w-64 h-32 md:h-64 rounded-full bg-white blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-48 md:w-96 h-48 md:h-96 rounded-full bg-white blur-3xl" />
+          </div>
+          
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-end gap-4 md:gap-6">
+            <div className="w-24 h-24 md:w-40 md:h-40 rounded-xl md:rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center shadow-2xl mx-auto sm:mx-0">
+              <ListMusic className="w-12 h-12 md:w-20 md:h-20 text-white" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Плейлисты</h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-1">
+            <div className="flex-1 text-white text-center sm:text-left pb-2">
+              <p className="text-xs md:text-sm font-medium opacity-80 mb-1">Коллекция</p>
+              <h1 className="text-2xl md:text-4xl font-bold mb-2">Плейлисты</h1>
+              <p className="opacity-80 text-sm md:text-base">
                 {displayPlaylists.length} плейлистов
               </p>
             </div>
           </div>
 
-          <button className="px-5 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all flex items-center gap-2">
-            <Plus className="w-5 h-5" />
-            Создать
-          </button>
+          {/* Create button */}
+          <div className="relative z-10 flex gap-3 mt-6 justify-center sm:justify-start">
+            <button className="px-6 md:px-8 py-3 md:py-4 bg-white text-black rounded-full font-semibold shadow-lg hover:scale-105 transition-transform flex items-center gap-2 text-sm md:text-base">
+              <Plus className="w-4 h-4 md:w-5 md:h-5" />
+              Создать плейлист
+            </button>
+          </div>
         </div>
 
         {/* Not connected state */}
         {!hasAnyConnection && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 rounded-3xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mb-6">
-              <Music2 className="w-10 h-10 text-gray-400" />
+          <div className="flex flex-col items-center justify-center py-12 md:py-20 text-center">
+            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mb-4 md:mb-6">
+              <Music2 className="w-8 h-8 md:w-10 md:h-10 text-gray-400" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Подключите музыку</h2>
-            <p className="text-gray-500 mb-8 max-w-md">
+            <h2 className="text-xl md:text-2xl font-bold mb-2">Подключите музыку</h2>
+            <p className="text-gray-500 mb-6 md:mb-8 max-w-md px-4 text-sm md:text-base">
               Войдите через VK или Яндекс, чтобы увидеть свои плейлисты
             </p>
             <Link
               href="/login"
-              className="px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all"
+              className="px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl md:rounded-2xl font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all text-sm md:text-base"
             >
               Войти
             </Link>
@@ -140,12 +150,12 @@ export default function PlaylistsPage() {
 
         {/* Source tabs */}
         {hasAnyConnection && sourceTabs.length > 1 && (
-          <div className="flex gap-2 mb-8 p-1.5 bg-gray-100 dark:bg-neutral-800 rounded-2xl w-fit">
+          <div className="flex gap-2 mb-6 md:mb-8 p-1.5 bg-gray-100 dark:bg-neutral-800 rounded-xl md:rounded-2xl w-fit">
             {sourceTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveSource(tab.id)}
-                className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
+                className={`px-4 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl font-medium transition-all text-sm md:text-base ${
                   activeSource === tab.id
                     ? 'bg-white dark:bg-neutral-700 shadow-sm text-black dark:text-white'
                     : 'text-gray-500 hover:text-black dark:hover:text-white'

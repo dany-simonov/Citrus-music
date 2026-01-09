@@ -1,9 +1,11 @@
 {
-  "/settings/page": "app/settings/page.js",
-  "/favorites/page": "app/favorites/page.js",
-  "/playlists/page": "app/playlists/page.js",
-  "/playlist/[id]/page": "app/playlist/[id]/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/page": "app/page.js",
+  "/search/page": "app/search/page.js",
+  "/playlists/page": "app/playlists/page.js",
+  "/favorites/page": "app/favorites/page.js",
   "/api/vk/route": "app/api/vk/route.js",
-  "/history/page": "app/history/page.js"
+  "/settings/page": "app/settings/page.js",
+  "/history/page": "app/history/page.js",
+  "/login/page": "app/login/page.js"
 }

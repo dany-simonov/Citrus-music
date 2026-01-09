@@ -6,6 +6,34 @@ import { NextRequest, NextResponse } from 'next/server';
 const VK_API_URL = 'https://api.vk.com/method';
 const VK_API_VERSION = '5.199';
 
+// Функция для выполнения запроса с retry
+async function fetchWithRetry(url: string, options: RequestInit, retries = 3, timeout = 30000): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error: any) {
+      console.log(`VK API attempt ${i + 1}/${retries} failed:`, error.message);
+      
+      if (i === retries - 1) {
+        throw error;
+      }
+      
+      // Ждём перед повторной попыткой
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+    }
+  }
+  throw new Error('All retries failed');
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -40,8 +68,8 @@ export async function POST(request: NextRequest) {
 
     const url = `${VK_API_URL}/${method}?${queryParams.toString()}`;
 
-    // Выполняем запрос к VK API с сервера (без CORS ограничений)
-    const response = await fetch(url, {
+    // Выполняем запрос к VK API с retry и увеличенным timeout
+    const response = await fetchWithRetry(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -52,10 +80,16 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
 
     return NextResponse.json(data);
-  } catch (error) {
+  } catch (error: any) {
     console.error('VK API Proxy error:', error);
+    
+    // Более информативная ошибка
+    const errorMessage = error.name === 'AbortError' 
+      ? 'Timeout: VK API не отвечает. Проверьте подключение к интернету.'
+      : error.message || 'Failed to fetch from VK API';
+    
     return NextResponse.json(
-      { error: 'Failed to fetch from VK API' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

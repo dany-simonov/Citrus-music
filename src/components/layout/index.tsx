@@ -19,9 +19,9 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Sidebar */}
       <Sidebar />
 
-      {/* Main content - adaptive margin */}
-      <main className="lg:ml-64 xl:ml-72 pb-28 pt-16 lg:pt-0 min-h-screen overflow-auto">
-        <div className="animate-fade-in pr-4 lg:pr-6">
+      {/* Main content - adaptive margin with proper spacing */}
+      <main className="lg:ml-64 xl:ml-72 pb-32 pt-16 lg:pt-0 min-h-screen overflow-auto">
+        <div className="animate-fade-in px-4 lg:px-6 xl:px-8">
           {children}
         </div>
       </main>

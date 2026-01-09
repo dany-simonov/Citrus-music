@@ -66,16 +66,16 @@ export function Sidebar({ className }: SidebarProps) {
 
   const SidebarContent = () => (
     <>
-      {/* Логотип */}
+      {/* Логотип с оранжевым квадратом */}
       <div className="p-4 lg:p-6 pb-4">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl overflow-hidden shadow-lg group-hover:shadow-orange-500/40 transition-shadow">
+          <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl lg:rounded-[1.25rem] bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-xl shadow-orange-500/30 group-hover:shadow-orange-500/40 transition-shadow">
             <Image 
               src="/logo1.png"
               alt="Цитрус"
-              width={48}
-              height={48}
-              className="w-full h-full object-cover"
+              width={36}
+              height={36}
+              className="w-8 h-8 lg:w-9 lg:h-9 object-contain"
             />
           </div>
           <span className="text-xl lg:text-2xl font-bold text-gradient">Цитрус</span>
@@ -140,14 +140,25 @@ export function Sidebar({ className }: SidebarProps) {
         </nav>
       )}
 
-      {/* Нижняя часть - Аккаунт и Настройки (выше плеера) */}
-      <div className="mt-auto p-3 lg:p-4 pb-32 border-t border-gray-200/50 dark:border-neutral-800/50 space-y-2">
-        {/* Аккаунт */}
+      {/* Нижняя часть - Настройки и Аккаунт (выше плеера) */}
+      <div className="mt-auto p-3 lg:p-4 pb-8 border-t border-gray-200/50 dark:border-neutral-800/50 space-y-2">
+        {/* Настройки - теперь сверху */}
+        <Link
+          href="/settings"
+          className={cn(
+            'flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl transition-all duration-200',
+            pathname === '/settings'
+              ? 'bg-black/5 dark:bg-white/10 text-orange-500'
+              : 'text-gray-500 hover:bg-black/5 dark:hover:bg-white/5'
+          )}
+        >
+          <Settings className="w-5 h-5" />
+          <span className="text-sm lg:text-base font-medium">Настройки</span>
+        </Link>
+
+        {/* Аккаунт - теперь снизу */}
         {isAuthenticated && user ? (
-          <Link
-            href="/settings"
-            className="flex items-center justify-between p-2 lg:p-3 rounded-xl lg:rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200"
-          >
+          <div className="flex items-center justify-between p-2 lg:p-3 rounded-xl lg:rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200">
             <div className="flex items-center gap-2 lg:gap-3 min-w-0">
               {user.avatarUrl ? (
                 <img
@@ -180,7 +191,7 @@ export function Sidebar({ className }: SidebarProps) {
             >
               <LogOut className="w-4 h-4 text-gray-500" />
             </button>
-          </Link>
+          </div>
         ) : (
           <Link
             href="/login"
@@ -190,20 +201,6 @@ export function Sidebar({ className }: SidebarProps) {
             <span className="font-medium text-sm lg:text-base">Аккаунт</span>
           </Link>
         )}
-
-        {/* Настройки */}
-        <Link
-          href="/settings"
-          className={cn(
-            'flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl transition-all duration-200',
-            pathname === '/settings'
-              ? 'bg-black/5 dark:bg-white/10 text-orange-500'
-              : 'text-gray-500 hover:bg-black/5 dark:hover:bg-white/5'
-          )}
-        >
-          <Settings className="w-5 h-5" />
-          <span className="text-sm lg:text-base font-medium">Настройки</span>
-        </Link>
       </div>
     </>
   );

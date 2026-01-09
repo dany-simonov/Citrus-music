@@ -25,26 +25,26 @@ export default function HomePage() {
   return (
     <MainLayout>
       {/* Hero Section */}
-      <section className="py-16 animate-fade-in">
-        <div className="text-center max-w-4xl mx-auto">
+      <section className="py-12 md:py-16 animate-fade-in">
+        <div className="text-center max-w-4xl mx-auto px-4">
           {/* Logo */}
-          <div className="inline-flex items-center justify-center w-28 h-28 rounded-[2rem] bg-gradient-to-br from-orange-500 to-orange-600 mb-8 shadow-2xl shadow-orange-500/30">
+          <div className="inline-flex items-center justify-center w-24 h-24 md:w-28 md:h-28 rounded-[1.5rem] md:rounded-[2rem] bg-gradient-to-br from-orange-500 to-orange-600 mb-6 md:mb-8 shadow-2xl shadow-orange-500/30">
             <Image 
               src="/logo1.png"
-              alt="Citrus"
+              alt="Цитрус"
               width={64}
               height={64}
-              className="w-16 h-16 object-contain"
+              className="w-12 h-12 md:w-16 md:h-16 object-contain"
               priority
             />
           </div>
           
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 tracking-tight">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 tracking-tight">
             Добро пожаловать в{' '}
-            <span className="text-gradient">Citrus</span>
+            <span className="text-gradient">Цитрус</span>
           </h1>
           
-          <p className="text-xl text-gray-600 dark:text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed">
             Слушайте музыку из ВКонтакте и Яндекс Музыки в одном удобном приложении.
             Бесплатно и без подписки.
           </p>
