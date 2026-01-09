@@ -1,6 +1,3 @@
-
-<img width="200" height="200" alt="Group 139" src="https://github.com/user-attachments/assets/41e4ea58-6841-4a9c-b0bb-32d0040ef454" />
-
 <h1 align="center">🍊 Citrus Music</h1>
 
 <p align="center">
