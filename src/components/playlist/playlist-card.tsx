@@ -1,5 +1,5 @@
 /**
- * Компонент карточки плейлиста
+ * Компонент карточки плейлиста - Apple/Microsoft Style
  * @module components/playlist/playlist-card
  */
 
@@ -28,37 +28,45 @@ export function PlaylistCard({ playlist, onPlay, className }: PlaylistCardProps)
     <Link 
       href={`/playlist/${playlist.id}`}
       className={cn(
-        'group block p-4 rounded-xl bg-citrus-secondary-light dark:bg-citrus-secondary-dark',
-        'hover:bg-gray-200 dark:hover:bg-neutral-800 transition-all duration-200',
+        'group block p-4 rounded-3xl',
+        'bg-gray-50/80 dark:bg-neutral-900/80 backdrop-blur-xl',
+        'hover:bg-white dark:hover:bg-neutral-800',
+        'hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/30',
+        'border border-gray-200/30 dark:border-neutral-800/50',
+        'transition-all duration-300 hover:-translate-y-1',
         className
       )}
     >
       {/* Обложка */}
-      <div className="relative aspect-square rounded-lg overflow-hidden mb-4 bg-gray-200 dark:bg-neutral-700">
+      <div className="relative aspect-square rounded-2xl overflow-hidden mb-4 bg-gray-100 dark:bg-neutral-800 shadow-lg group-hover:shadow-xl transition-shadow">
         {playlist.coverUrl ? (
           <Image
             src={playlist.coverUrl}
             alt={playlist.title}
             fill
-            className="object-cover"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <ListMusic className="w-12 h-12 text-gray-400" />
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-700 dark:to-neutral-800">
+            <ListMusic className="w-14 h-14 text-gray-400" />
           </div>
         )}
+        
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         
         {/* Play кнопка при наведении */}
         <button
           onClick={handlePlayClick}
           className={cn(
-            'absolute bottom-2 right-2 w-12 h-12 rounded-full',
-            'bg-citrus-accent text-white shadow-lg',
+            'absolute bottom-3 right-3 w-12 h-12 rounded-full',
+            'bg-gradient-to-br from-orange-500 to-orange-600 text-white',
+            'shadow-xl shadow-orange-500/30',
             'flex items-center justify-center',
-            'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0',
-            'transition-all duration-200',
-            'hover:scale-105 hover:bg-orange-600'
+            'opacity-0 translate-y-3 group-hover:opacity-100 group-hover:translate-y-0',
+            'transition-all duration-300',
+            'hover:scale-110 hover:shadow-orange-500/40 active:scale-95'
           )}
         >
           <Play className="w-6 h-6 ml-0.5" />
@@ -66,8 +74,8 @@ export function PlaylistCard({ playlist, onPlay, className }: PlaylistCardProps)
       </div>
 
       {/* Информация */}
-      <h3 className="font-semibold truncate mb-1">{playlist.title}</h3>
-      <p className="text-sm text-gray-500 truncate">
+      <h3 className="font-bold truncate mb-1 text-black dark:text-white">{playlist.title}</h3>
+      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
         {playlist.trackCount} {getTracksWord(playlist.trackCount)}
       </p>
     </Link>

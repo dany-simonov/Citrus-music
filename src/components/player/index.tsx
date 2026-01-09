@@ -1,5 +1,5 @@
 /**
- * Компонент плеера
+ * Компонент плеера - Apple/Microsoft Style
  * @module components/player
  */
 
@@ -20,6 +20,7 @@ import {
   Repeat1,
   Shuffle,
   ListMusic,
+  Heart,
 } from 'lucide-react';
 import Image from 'next/image';
 import { AudioController } from './audio-controller';
@@ -57,8 +58,8 @@ export function Player() {
     return (
       <>
         <AudioController />
-        <div className="player-container h-20 flex items-center justify-center opacity-50">
-          <p className="text-sm text-gray-500">Выберите трек для воспроизведения</p>
+        <div className="player-container h-24 flex items-center justify-center">
+          <p className="text-sm text-gray-400 dark:text-gray-500">Выберите трек для воспроизведения</p>
         </div>
       </>
     );
@@ -72,7 +73,7 @@ export function Player() {
       <AudioController />
       <div className="player-container">
         {/* Прогресс-бар вверху */}
-        <div className="w-full h-1 bg-gray-200 dark:bg-neutral-800 relative group cursor-pointer">
+        <div className="w-full h-1 bg-gray-200/50 dark:bg-neutral-800 relative group">
           <input
             type="range"
             min="0"
@@ -82,15 +83,18 @@ export function Player() {
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
           />
           <div
-            className="h-full bg-citrus-accent transition-all"
+            className="h-full bg-gradient-to-r from-orange-500 to-orange-600 rounded-full transition-all duration-100"
             style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }}
           />
+          {/* Hover indicator */}
+          <div className="absolute top-1/2 -translate-y-1/2 h-3 w-3 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+               style={{ left: `calc(${duration ? (progress / duration) * 100 : 0}% - 6px)` }} />
         </div>
 
-        <div className="h-20 px-4 flex items-center justify-between">
+        <div className="h-24 px-6 flex items-center justify-between">
           {/* Информация о треке */}
-          <div className="flex items-center gap-3 min-w-0 w-1/4">
-            <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-200 dark:bg-neutral-800 flex-shrink-0">
+          <div className="flex items-center gap-4 min-w-0 w-1/4">
+            <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 dark:bg-neutral-800 flex-shrink-0 shadow-lg">
               {currentTrack.coverUrl ? (
                 <Image
                   src={currentTrack.coverUrl}
@@ -100,43 +104,46 @@ export function Player() {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <ListMusic className="w-6 h-6 text-gray-400" />
+                  <ListMusic className="w-7 h-7 text-gray-400" />
                 </div>
               )}
             </div>
             <div className="min-w-0">
-              <p className="font-medium truncate">{currentTrack.title}</p>
-              <p className="text-sm text-gray-500 truncate">{currentTrack.artist}</p>
+              <p className="font-semibold truncate text-base">{currentTrack.title}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{currentTrack.artist}</p>
             </div>
+            <Button variant="icon" className="w-10 h-10 flex-shrink-0 text-gray-400 hover:text-red-500">
+              <Heart className="w-5 h-5" />
+            </Button>
           </div>
 
           {/* Контролы воспроизведения */}
-          <div className="flex flex-col items-center gap-2 w-2/4">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col items-center gap-3 w-2/4">
+            <div className="flex items-center gap-3">
               <Button
                 variant="icon"
                 onClick={toggleShuffle}
                 className={cn(
-                  'w-8 h-8',
-                  isShuffled && 'text-citrus-accent'
+                  'w-10 h-10',
+                  isShuffled && 'text-orange-500'
                 )}
               >
-                <Shuffle className="w-4 h-4" />
+                <Shuffle className="w-5 h-5" />
               </Button>
 
-              <Button variant="icon" onClick={previous} className="w-10 h-10">
-                <SkipBack className="w-5 h-5" />
+              <Button variant="icon" onClick={previous} className="w-12 h-12 hover:scale-105 transition-transform">
+                <SkipBack className="w-6 h-6" />
               </Button>
 
               <Button
                 variant="icon"
                 onClick={togglePlay}
                 disabled={isLoading}
-                className="w-12 h-12 bg-citrus-accent text-white hover:bg-orange-600"
+                className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl shadow-orange-500/30 hover:shadow-orange-500/40 hover:scale-105 active:scale-95 transition-all"
               >
                 {isLoading ? (
                   <svg
-                    className="animate-spin h-6 w-6"
+                    className="animate-spin h-7 w-7"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -156,58 +163,60 @@ export function Player() {
                     />
                   </svg>
                 ) : isPlaying ? (
-                  <Pause className="w-6 h-6" />
+                  <Pause className="w-7 h-7" />
                 ) : (
-                  <Play className="w-6 h-6 ml-1" />
+                  <Play className="w-7 h-7 ml-1" />
                 )}
               </Button>
 
-              <Button variant="icon" onClick={next} className="w-10 h-10">
-                <SkipForward className="w-5 h-5" />
+              <Button variant="icon" onClick={next} className="w-12 h-12 hover:scale-105 transition-transform">
+                <SkipForward className="w-6 h-6" />
               </Button>
 
               <Button
                 variant="icon"
                 onClick={toggleRepeat}
                 className={cn(
-                  'w-8 h-8',
-                  repeatMode !== RepeatMode.OFF && 'text-citrus-accent'
+                  'w-10 h-10',
+                  repeatMode !== RepeatMode.OFF && 'text-orange-500'
                 )}
               >
                 {repeatMode === RepeatMode.ONE ? (
-                  <Repeat1 className="w-4 h-4" />
+                  <Repeat1 className="w-5 h-5" />
                 ) : (
-                  <Repeat className="w-4 h-4" />
+                  <Repeat className="w-5 h-5" />
                 )}
               </Button>
             </div>
 
             {/* Время */}
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <span>{formatDuration(progress)}</span>
-              <span>/</span>
-              <span>{formatDuration(duration)}</span>
+            <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
+              <span className="min-w-[36px] text-right">{formatDuration(progress)}</span>
+              <span className="text-gray-300 dark:text-gray-600">/</span>
+              <span className="min-w-[36px]">{formatDuration(duration)}</span>
             </div>
           </div>
 
           {/* Громкость */}
-          <div className="flex items-center gap-2 justify-end w-1/4">
-            <Button variant="icon" onClick={toggleMute} className="w-8 h-8">
+          <div className="flex items-center gap-3 justify-end w-1/4">
+            <Button variant="icon" onClick={toggleMute} className="w-10 h-10">
               {isMuted || volume === 0 ? (
                 <VolumeX className="w-5 h-5" />
               ) : (
                 <Volume2 className="w-5 h-5" />
               )}
             </Button>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={isMuted ? 0 : volume}
-              onChange={handleVolumeChange}
-              className="w-24"
-            />
+            <div className="w-28 relative group">
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={isMuted ? 0 : volume}
+                onChange={handleVolumeChange}
+                className="w-full"
+              />
+            </div>
           </div>
         </div>
       </div>

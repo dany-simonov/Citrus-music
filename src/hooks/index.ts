@@ -4,3 +4,4 @@
  */
 
 export * from './use-vk-api';
+export * from './use-yandex-api';

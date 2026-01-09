@@ -8,9 +8,9 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
-import { Button } from '@/components/ui/button';
-import { Music2, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 // VK Icon component
 function VKIcon({ className }: { className?: string }) {
@@ -32,7 +32,14 @@ function YandexIcon({ className }: { className?: string }) {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, error, initiateVKAuth, clearError } = useAuthStore();
+  const { 
+    isAuthenticated, 
+    isLoading, 
+    error, 
+    initiateVKAuth, 
+    initiateYandexAuth,
+    clearError 
+  } = useAuthStore();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -46,53 +53,98 @@ export default function LoginPage() {
   };
 
   const handleYandexLogin = () => {
-    // TODO: Implement Yandex login
-    alert('Вход через Яндекс будет доступен в следующей версии');
+    clearError();
+    initiateYandexAuth();
+  };
+      
+      // Редирект через 1.5 секунды
+      setTimeout(() => {
+        router.push('/');
+      }, 1500);
+      
+    } catch (err) {
+      console.error('Token error:', err);
+      setTokenError('Не удалось войти с этим токеном. Проверьте правильность.');
+    } finally {
+      setTokenLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black flex">
+    <div className="min-h-screen bg-citrus-bg-light dark:bg-citrus-bg-dark flex">
       {/* Left side - decorative */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-citrus-accent to-orange-600 items-center justify-center p-12">
-        <div className="text-white text-center">
-          <div className="w-24 h-24 rounded-3xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-8">
-            <Music2 className="w-12 h-12" />
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-citrus-accent via-orange-500 to-amber-500 items-center justify-center p-12 relative overflow-hidden">
+        {/* Background pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-white blur-3xl" />
+          <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-white blur-3xl" />
+        </div>
+        
+        <div className="text-white text-center relative z-10">
+          {/* Logo */}
+          <div className="w-32 h-32 rounded-[2.5rem] bg-white/20 backdrop-blur-xl flex items-center justify-center mx-auto mb-10 shadow-2xl shadow-black/20 border border-white/20">
+            <Image 
+              src="/logo.png" 
+              alt="Citrus Logo"
+              width={80}
+              height={80}
+              className="w-20 h-20 object-contain"
+              priority
+            />
           </div>
-          <h1 className="text-4xl font-bold mb-4">Citrus</h1>
-          <p className="text-xl opacity-90">
+          <h1 className="text-5xl font-bold mb-4 tracking-tight">Citrus</h1>
+          <p className="text-xl opacity-90 font-medium">
             Вся ваша музыка в одном месте
           </p>
+          
+          {/* Feature badges */}
+          <div className="flex items-center justify-center gap-3 mt-10">
+            <span className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-2xl text-sm font-medium">
+              VK Музыка
+            </span>
+            <span className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-2xl text-sm font-medium">
+              Яндекс Музыка
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Right side - login form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md animate-fade-in">
           {/* Back button */}
           <Link 
             href="/"
-            className="inline-flex items-center gap-2 text-gray-500 hover:text-black dark:hover:text-white mb-8 transition-colors"
+            className="inline-flex items-center gap-2 text-gray-500 hover:text-black dark:hover:text-white mb-10 transition-all duration-200 hover:-translate-x-1"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>На главную</span>
+            <span className="font-medium">На главную</span>
           </Link>
 
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-citrus-accent flex items-center justify-center">
-              <Music2 className="w-6 h-6 text-white" />
+          <div className="lg:hidden flex items-center gap-4 mb-10">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-citrus-accent to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
+              <Image 
+                src="/logo.png" 
+                alt="Citrus Logo"
+                width={40}
+                height={40}
+                className="w-10 h-10 object-contain"
+              />
             </div>
-            <span className="text-2xl font-bold text-gradient">Citrus</span>
+            <span className="text-3xl font-bold text-gradient">Citrus</span>
           </div>
 
-          <h2 className="text-2xl font-bold mb-2">Добро пожаловать</h2>
-          <p className="text-gray-500 mb-8">
-            Войдите через одну из платформ, чтобы получить доступ к своей музыке
-          </p>
+          <div className="mb-10">
+            <h2 className="text-3xl font-bold mb-3 tracking-tight">Добро пожаловать</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-lg">
+              Войдите через одну из платформ для доступа к музыке
+            </p>
+          </div>
 
           {/* Error message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
+            <div className="mb-8 p-5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-2xl text-red-600 dark:text-red-400 text-sm animate-scale-in">
               {error}
             </div>
           )}
@@ -102,7 +154,10 @@ export default function LoginPage() {
             <button
               onClick={handleVKLogin}
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-[#0077FF] text-white rounded-xl font-medium hover:bg-[#0066DD] transition-colors disabled:opacity-70"
+              className="w-full flex items-center justify-center gap-3 px-6 py-5 bg-[#0077FF] text-white rounded-2xl font-semibold 
+                         hover:bg-[#0066DD] active:scale-[0.98] transition-all duration-200 
+                         shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30
+                         disabled:opacity-70 disabled:cursor-not-allowed"
             >
               <VKIcon className="w-6 h-6" />
               {isLoading ? 'Загрузка...' : 'Войти через ВКонтакте'}
@@ -110,22 +165,99 @@ export default function LoginPage() {
 
             <button
               onClick={handleYandexLogin}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-[#FC3F1D] text-white rounded-xl font-medium hover:bg-[#E33A1A] transition-colors"
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-3 px-6 py-5 bg-[#FC3F1D] text-white rounded-2xl font-semibold 
+                         hover:bg-[#E33A1A] active:scale-[0.98] transition-all duration-200 
+                         shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30
+                         disabled:opacity-70 disabled:cursor-not-allowed"
             >
               <YandexIcon className="w-6 h-6" />
-              Войти через Яндекс
-              <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">скоро</span>
+              {isLoading ? 'Загрузка...' : 'Войти через Яндекс'}
+              <ExternalLink className="w-4 h-4 opacity-70" />
             </button>
           </div>
 
+          {/* Yandex Token Input Form */}
+          {showTokenInput && !tokenSuccess && (
+            <div className="mt-6 p-6 bg-orange-50 dark:bg-orange-900/10 rounded-2xl border border-orange-200 dark:border-orange-800/30 animate-scale-in">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                  <Key className="w-5 h-5 text-orange-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Шаг 2: Вставьте токен</h3>
+                  <p className="text-xs text-gray-500">Скопируйте токен со страницы Яндекса</p>
+                </div>
+              </div>
+              
+              {tokenError && (
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
+                  {tokenError}
+                </div>
+              )}
+              
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={yandexToken}
+                  onChange={(e) => setYandexToken(e.target.value)}
+                  placeholder="y0__xDqt..."
+                  className="w-full px-4 py-3 bg-white dark:bg-neutral-800 rounded-xl border border-gray-200 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-orange-500/50 font-mono text-sm"
+                />
+                <button
+                  onClick={handleTokenSubmit}
+                  disabled={tokenLoading || !yandexToken.trim()}
+                  className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {tokenLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Проверяем...
+                    </>
+                  ) : (
+                    'Подключить Яндекс Музыку'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Success message */}
+          {tokenSuccess && (
+            <div className="mt-6 p-6 bg-green-50 dark:bg-green-900/10 rounded-2xl border border-green-200 dark:border-green-800/30 animate-scale-in">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-8 h-8 text-green-500" />
+                <div>
+                  <h3 className="font-semibold text-green-700 dark:text-green-400">Успешно!</h3>
+                  <p className="text-sm text-green-600 dark:text-green-500">Яндекс Музыка подключена. Перенаправляем...</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Divider */}
+          <div className="flex items-center gap-4 my-8">
+            <div className="flex-1 h-px bg-gray-200 dark:bg-neutral-800" />
+            <span className="text-xs text-gray-400 font-medium">ИЛИ</span>
+            <div className="flex-1 h-px bg-gray-200 dark:bg-neutral-800" />
+          </div>
+
+          {/* Guest mode hint */}
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+            Хотите просто посмотреть?{' '}
+            <Link href="/" className="text-citrus-accent hover:underline font-medium">
+              Продолжить как гость
+            </Link>
+          </p>
+
           {/* Terms */}
-          <p className="mt-8 text-xs text-gray-400 text-center">
+          <p className="mt-10 text-xs text-gray-400 text-center leading-relaxed">
             Входя в приложение, вы соглашаетесь с{' '}
-            <a href="#" className="text-citrus-accent hover:underline">
+            <a href="#" className="text-citrus-accent hover:underline font-medium">
               условиями использования
             </a>{' '}
             и{' '}
-            <a href="#" className="text-citrus-accent hover:underline">
+            <a href="#" className="text-citrus-accent hover:underline font-medium">
               политикой конфиденциальности
             </a>
           </p>

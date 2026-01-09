@@ -229,7 +229,7 @@ REACT_APP_CITRUS_VERSION=1.0.0
 REACT_APP_CACHE_ENABLED=true
 
 
-
+с сайта вк
 <div>
   <script nonce="csp_nonce" src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script>
   <script nonce="csp_nonce" type="text/javascript">

@@ -4,129 +4,298 @@
 
 :root {
   --citrus-accent: #E47600;
+  --citrus-accent-hover: #D06A00;
   --citrus-bg-light: #FFFFFF;
-  --citrus-bg-dark: #000000;
-  --citrus-secondary-light: #F5F5F5;
-  --citrus-secondary-dark: #1F1F1F;
+  --citrus-bg-dark: #0A0A0A;
+  --citrus-secondary-light: #F5F5F7;
+  --citrus-secondary-dark: #1C1C1E;
+  --citrus-tertiary-light: #E8E8ED;
+  --citrus-tertiary-dark: #2C2C2E;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
 }
 
 @layer base {
   body {
-    @apply bg-white dark:bg-black text-black dark:text-white;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    @apply text-black dark:text-white antialiased;
+    background-color: var(--citrus-bg-light);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Скроллбар */
+  .dark body {
+    background-color: var(--citrus-bg-dark);
+  }
+
+  /* Apple-style smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Modern scrollbar - Apple/Microsoft style */
   ::-webkit-scrollbar {
     @apply w-2;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-gray-100 dark:bg-neutral-900;
+    @apply bg-transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 dark:bg-neutral-700 rounded-full;
+    @apply bg-gray-300/50 dark:bg-neutral-700/50 rounded-full;
+    border: 2px solid transparent;
+    background-clip: padding-box;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400 dark:bg-neutral-600;
+    @apply bg-gray-400/70 dark:bg-neutral-600/70;
+  }
+
+  /* Selection color */
+  ::selection {
+    background-color: rgba(228, 118, 0, 0.2);
+    color: var(--citrus-accent);
   }
 }
 
 @layer components {
-  /* Кнопка с акцентным цветом */
+  /* Apple-style Primary Button */
   .btn-primary {
-    @apply bg-citrus-accent text-white px-6 py-3 rounded-full font-medium
-           hover:bg-orange-600 active:bg-orange-700 
-           transition-colors duration-200
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply text-white px-6 py-3 rounded-2xl font-semibold
+           hover:bg-orange-600 active:scale-[0.98]
+           shadow-lg shadow-orange-500/20
+           transition-all duration-200 ease-out
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none;
+    background-color: var(--citrus-accent);
   }
 
+  /* Microsoft Fluent-style Secondary Button */
   .btn-secondary {
-    @apply bg-citrus-secondary-light dark:bg-citrus-secondary-dark
-           text-black dark:text-white px-6 py-3 rounded-full font-medium
-           hover:bg-gray-200 dark:hover:bg-neutral-800
-           transition-colors duration-200;
+    @apply text-black dark:text-white px-6 py-3 rounded-2xl font-semibold
+           active:scale-[0.98]
+           border border-gray-200/50 dark:border-neutral-700/50
+           transition-all duration-200 ease-out;
+    background-color: var(--citrus-secondary-light);
   }
 
+  .dark .btn-secondary {
+    background-color: var(--citrus-secondary-dark);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--citrus-tertiary-light);
+  }
+
+  .dark .btn-secondary:hover {
+    background-color: var(--citrus-tertiary-dark);
+  }
+
+  /* Ghost Button */
   .btn-ghost {
-    @apply text-black dark:text-white px-4 py-2 rounded-lg
-           hover:bg-gray-100 dark:hover:bg-neutral-800
-           transition-colors duration-200;
+    @apply text-black dark:text-white px-4 py-2 rounded-xl
+           hover:bg-black/5 dark:hover:bg-white/5
+           active:scale-[0.98]
+           transition-all duration-200 ease-out;
   }
 
+  /* Icon Button - Apple style */
   .btn-icon {
-    @apply p-2 rounded-full 
-           hover:bg-gray-100 dark:hover:bg-neutral-800
-           transition-colors duration-200
+    @apply p-3 rounded-2xl 
+           hover:bg-black/5 dark:hover:bg-white/10
+           active:scale-95
+           transition-all duration-150 ease-out
            flex items-center justify-center;
   }
 
-  /* Карточки */
+  /* Modern Card - Glassmorphism inspired */
   .card {
-    @apply bg-citrus-secondary-light dark:bg-citrus-secondary-dark
-           rounded-xl p-4 
-           hover:bg-gray-200 dark:hover:bg-neutral-800
-           transition-colors duration-200;
+    @apply backdrop-blur-xl
+           rounded-3xl p-5
+           border border-gray-200/30 dark:border-neutral-700/30
+           hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/20
+           transition-all duration-300 ease-out;
+    background-color: rgba(245, 245, 247, 0.8);
   }
 
-  /* Поля ввода */
+  .dark .card {
+    background-color: rgba(28, 28, 30, 0.8);
+  }
+
+  .card:hover {
+    background-color: var(--citrus-secondary-light);
+  }
+
+  .dark .card:hover {
+    background-color: var(--citrus-secondary-dark);
+  }
+
+  /* Elevated Card */
+  .card-elevated {
+    @apply bg-white rounded-3xl p-6
+           shadow-xl shadow-black/5 dark:shadow-black/30
+           border border-gray-100 dark:border-neutral-800
+           transition-all duration-300;
+  }
+
+  .dark .card-elevated {
+    background-color: var(--citrus-secondary-dark);
+  }
+
+  /* Apple-style Input */
   .input {
-    @apply bg-citrus-secondary-light dark:bg-citrus-secondary-dark
-           border border-gray-200 dark:border-neutral-700
-           rounded-lg px-4 py-3
-           text-black dark:text-white
-           placeholder:text-gray-500
-           focus:outline-none focus:ring-2 focus:ring-citrus-accent focus:border-transparent
+    @apply border border-gray-200/50 dark:border-neutral-700/50
+           rounded-2xl px-5 py-4
+           text-black dark:text-white text-base
+           placeholder:text-gray-400 dark:placeholder:text-gray-500
+           focus:outline-none focus:ring-2 focus:border-transparent
            transition-all duration-200;
+    background-color: var(--citrus-secondary-light);
+    --tw-ring-color: rgba(228, 118, 0, 0.5);
   }
 
-  /* Прогресс-бар */
+  .dark .input {
+    background-color: var(--citrus-secondary-dark);
+  }
+
+  .input:focus {
+    border-color: var(--citrus-accent);
+  }
+
+  /* Progress bar - thin Apple style */
   .progress-bar {
-    @apply h-1 bg-gray-200 dark:bg-neutral-700 rounded-full overflow-hidden;
+    @apply h-1 bg-gray-200/50 dark:bg-neutral-800 rounded-full overflow-hidden;
   }
 
   .progress-bar-fill {
-    @apply h-full bg-citrus-accent transition-all duration-100;
+    @apply h-full rounded-full transition-all duration-100 ease-linear;
+    background-color: var(--citrus-accent);
   }
 
-  /* Плеер */
+  /* Player Container - Glassmorphism */
   .player-container {
     @apply fixed bottom-0 left-0 right-0 
-           bg-citrus-secondary-light dark:bg-citrus-secondary-dark
-           border-t border-gray-200 dark:border-neutral-800
+           backdrop-blur-2xl
+           border-t border-gray-200/30 dark:border-neutral-800/50
            z-50;
+    background-color: rgba(255, 255, 255, 0.8);
   }
 
-  /* Sidebar */
+  .dark .player-container {
+    background-color: rgba(10, 10, 10, 0.8);
+  }
+
+  /* Sidebar - Apple style */
   .sidebar {
     @apply fixed left-0 top-0 h-full 
-           w-64 bg-citrus-secondary-light dark:bg-citrus-secondary-dark
-           border-r border-gray-200 dark:border-neutral-800
+           w-72 
+           backdrop-blur-2xl
+           border-r border-gray-200/30 dark:border-neutral-800/50
            z-40;
+    background-color: rgba(245, 245, 247, 0.95);
   }
 
-  /* Track item */
+  .dark .sidebar {
+    background-color: rgba(28, 28, 30, 0.95);
+  }
+
+  /* Track item - Apple Music inspired */
   .track-item {
-    @apply flex items-center gap-3 p-2 rounded-lg
-           hover:bg-gray-100 dark:hover:bg-neutral-800
-           cursor-pointer transition-colors duration-200;
+    @apply flex items-center gap-4 p-3 rounded-2xl
+           hover:bg-black/5 dark:hover:bg-white/5
+           cursor-pointer transition-all duration-200;
   }
 
   .track-item.active {
-    @apply bg-gray-200 dark:bg-neutral-700;
+    background-color: rgba(228, 118, 0, 0.1);
+  }
+
+  .dark .track-item.active {
+    background-color: rgba(228, 118, 0, 0.2);
   }
 
   /* Playlist grid */
   .playlist-grid {
-    @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4;
+    @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5;
+  }
+
+  /* Navigation item */
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl
+           text-gray-600 dark:text-gray-400 font-medium
+           hover:bg-black/5 dark:hover:bg-white/5
+           transition-all duration-200;
+  }
+
+  .nav-item.active {
+    @apply text-white shadow-lg shadow-orange-500/20;
+    background-color: var(--citrus-accent);
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold;
+    background-color: rgba(228, 118, 0, 0.1);
+    color: var(--citrus-accent);
+  }
+
+  /* Divider */
+  .divider {
+    @apply h-px bg-gray-200/50 dark:bg-neutral-800/50 my-4;
+  }
+
+  /* Section heading */
+  .section-heading {
+    @apply text-2xl font-bold tracking-tight mb-6;
+  }
+
+  /* Subtle text */
+  .text-subtle {
+    @apply text-gray-500 dark:text-gray-400;
   }
 }
 
 @layer utilities {
+  /* Gradient text */
   .text-gradient {
-    @apply bg-gradient-to-r from-citrus-accent to-orange-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-orange-500 via-orange-500 to-amber-500 
+           bg-clip-text text-transparent;
+  }
+
+  /* Glow effect */
+  .glow {
+    box-shadow: 0 10px 25px -5px rgba(228, 118, 0, 0.3);
+  }
+
+  .glow-lg {
+    box-shadow: 0 25px 50px -12px rgba(228, 118, 0, 0.4);
+  }
+
+  /* Fade animations */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+
+  /* Hover lift effect */
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-1;
+  }
+
+  /* Pulse glow */
+  .pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
   }
 
   .animate-spin-slow {
@@ -134,25 +303,74 @@
   }
 }
 
-/* Range input styling */
+/* Keyframes */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(228, 118, 0, 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 40px rgba(228, 118, 0, 0.5);
+  }
+}
+
+/* Range input - Apple style */
 input[type="range"] {
-  @apply appearance-none bg-transparent cursor-pointer;
+  @apply appearance-none bg-transparent cursor-pointer h-1;
 }
 
 input[type="range"]::-webkit-slider-track {
-  @apply h-1 rounded-full bg-gray-200 dark:bg-neutral-700;
+  @apply h-1 rounded-full bg-gray-200/50 dark:bg-neutral-700/50;
 }
 
 input[type="range"]::-webkit-slider-thumb {
-  @apply appearance-none w-3 h-3 rounded-full bg-citrus-accent mt-[-4px]
-         hover:scale-125 transition-transform;
+  @apply appearance-none w-4 h-4 rounded-full bg-white
+         shadow-lg shadow-black/20 border-2 border-citrus-accent
+         mt-[-6px] hover:scale-110 active:scale-95
+         transition-transform duration-150;
 }
 
 input[type="range"]::-moz-range-track {
-  @apply h-1 rounded-full bg-gray-200 dark:bg-neutral-700;
+  @apply h-1 rounded-full bg-gray-200/50 dark:bg-neutral-700/50;
 }
 
 input[type="range"]::-moz-range-thumb {
-  @apply appearance-none w-3 h-3 rounded-full bg-citrus-accent border-0
-         hover:scale-125 transition-transform;
+  @apply appearance-none w-4 h-4 rounded-full bg-white
+         shadow-lg shadow-black/20 border-2 border-citrus-accent
+         hover:scale-110 active:scale-95
+         transition-transform duration-150;
+}
+
+/* Focus visible for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  @apply outline-none ring-2 ring-citrus-accent ring-offset-2 
+         ring-offset-white dark:ring-offset-black;
 }

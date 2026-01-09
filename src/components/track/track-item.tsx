@@ -1,5 +1,5 @@
 /**
- * Компонент элемента списка треков
+ * Компонент элемента списка треков - Apple/Microsoft Style
  * @module components/track/track-item
  */
 
@@ -8,7 +8,7 @@
 import { Track, PlayerState } from '@/types/audio';
 import { usePlayerStore } from '@/store/player';
 import { cn, formatDuration } from '@/lib/utils';
-import { Play, Pause, MoreHorizontal, ListMusic } from 'lucide-react';
+import { Play, Pause, MoreHorizontal, ListMusic, Heart } from 'lucide-react';
 import Image from 'next/image';
 
 interface TrackItemProps {
@@ -43,52 +43,54 @@ export function TrackItem({
     <div
       onClick={handleClick}
       className={cn(
-        'group flex items-center gap-3 p-2 rounded-lg cursor-pointer',
-        'hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors',
-        isCurrentTrack && 'bg-gray-100 dark:bg-neutral-800',
+        'group flex items-center gap-4 p-3 rounded-2xl cursor-pointer',
+        'hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200',
+        isCurrentTrack && 'bg-orange-50 dark:bg-orange-900/20',
         !track.isAvailable && 'opacity-50 cursor-not-allowed',
         className
       )}
     >
       {/* Номер/иконка воспроизведения */}
-      <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+      <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 relative">
         {isPlaying ? (
-          <div className="w-4 h-4 flex items-center justify-center">
+          <div className="w-5 h-5 flex items-center justify-center">
             {/* Анимация эквалайзера */}
             <div className="flex items-end gap-0.5 h-4">
-              <span className="w-1 bg-citrus-accent animate-pulse" style={{ height: '60%' }} />
-              <span className="w-1 bg-citrus-accent animate-pulse" style={{ height: '100%', animationDelay: '0.2s' }} />
-              <span className="w-1 bg-citrus-accent animate-pulse" style={{ height: '40%', animationDelay: '0.4s' }} />
+              <span className="w-1 bg-orange-500 rounded-full animate-pulse" style={{ height: '60%' }} />
+              <span className="w-1 bg-orange-500 rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.2s' }} />
+              <span className="w-1 bg-orange-500 rounded-full animate-pulse" style={{ height: '40%', animationDelay: '0.4s' }} />
             </div>
           </div>
         ) : isCurrentTrack ? (
-          <Pause className="w-4 h-4 text-citrus-accent" />
+          <Pause className="w-5 h-5 text-orange-500" />
         ) : showIndex && index !== undefined ? (
-          <span className="text-sm text-gray-500 group-hover:hidden">{index + 1}</span>
+          <span className="text-sm text-gray-400 font-medium group-hover:opacity-0 transition-opacity">{index + 1}</span>
         ) : null}
         
         {/* Play при наведении */}
         {!isCurrentTrack && track.isAvailable && (
           <Play className={cn(
-            'w-4 h-4 text-black dark:text-white',
-            showIndex && index !== undefined ? 'hidden group-hover:block' : ''
+            'w-5 h-5 text-black dark:text-white absolute',
+            showIndex && index !== undefined 
+              ? 'opacity-0 group-hover:opacity-100 transition-opacity' 
+              : 'opacity-0 group-hover:opacity-100'
           )} />
         )}
       </div>
 
       {/* Обложка */}
-      <div className="relative w-10 h-10 rounded overflow-hidden bg-gray-200 dark:bg-neutral-700 flex-shrink-0">
+      <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-gray-100 dark:bg-neutral-800 flex-shrink-0 shadow-sm group-hover:shadow-md transition-shadow">
         {track.coverUrl ? (
           <Image
             src={track.coverUrl}
             alt={track.title}
             fill
             className="object-cover"
-            sizes="40px"
+            sizes="48px"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <ListMusic className="w-4 h-4 text-gray-400" />
+            <ListMusic className="w-5 h-5 text-gray-400" />
           </div>
         )}
       </div>
@@ -96,18 +98,33 @@ export function TrackItem({
       {/* Информация о треке */}
       <div className="flex-1 min-w-0">
         <p className={cn(
-          'font-medium truncate',
-          isCurrentTrack && 'text-citrus-accent'
+          'font-semibold truncate',
+          isCurrentTrack ? 'text-orange-500' : 'text-black dark:text-white'
         )}>
           {track.title}
         </p>
-        <p className="text-sm text-gray-500 truncate">{track.artist}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{track.artist}</p>
       </div>
 
       {/* Длительность */}
-      <div className="text-sm text-gray-500 flex-shrink-0">
+      <div className="text-sm text-gray-400 flex-shrink-0 font-medium">
         {formatDuration(track.duration)}
       </div>
+
+      {/* Лайк */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          // TODO: Добавить в избранное
+        }}
+        className={cn(
+          'p-2 rounded-xl opacity-0 group-hover:opacity-100',
+          'hover:bg-black/5 dark:hover:bg-white/10',
+          'transition-all duration-200 text-gray-400 hover:text-red-500'
+        )}
+      >
+        <Heart className="w-4 h-4" />
+      </button>
 
       {/* Меню */}
       <button
@@ -116,9 +133,9 @@ export function TrackItem({
           // TODO: Открыть контекстное меню
         }}
         className={cn(
-          'p-2 rounded-full opacity-0 group-hover:opacity-100',
-          'hover:bg-gray-200 dark:hover:bg-neutral-700',
-          'transition-all'
+          'p-2 rounded-xl opacity-0 group-hover:opacity-100',
+          'hover:bg-black/5 dark:hover:bg-white/10',
+          'transition-all duration-200'
         )}
       >
         <MoreHorizontal className="w-4 h-4" />
