@@ -14,7 +14,6 @@ import { useAuthStore } from '@/store/auth';
 import {
   Home,
   Search,
-  Library,
   ListMusic,
   Heart,
   Clock,
@@ -22,12 +21,12 @@ import {
   LogOut,
   Menu,
   X,
+  User,
 } from 'lucide-react';
 
 const mainNavItems = [
   { href: '/', label: 'Главная', icon: Home },
   { href: '/search', label: 'Поиск', icon: Search },
-  { href: '/library', label: 'Библиотека', icon: Library },
 ];
 
 const libraryItems = [
@@ -115,7 +114,7 @@ export function Sidebar({ className }: SidebarProps) {
       {isAuthenticated && (
         <nav className="px-3 lg:px-4 flex-1 overflow-y-auto">
           <p className="px-3 lg:px-4 mb-2 lg:mb-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Библиотека
+            Моя музыка
           </p>
           <ul className="space-y-1">
             {libraryItems.map((item) => {
@@ -141,10 +140,14 @@ export function Sidebar({ className }: SidebarProps) {
         </nav>
       )}
 
-      {/* Нижняя часть */}
-      <div className="mt-auto p-3 lg:p-4 border-t border-gray-200/50 dark:border-neutral-800/50">
+      {/* Нижняя часть - Аккаунт и Настройки */}
+      <div className="mt-auto p-3 lg:p-4 border-t border-gray-200/50 dark:border-neutral-800/50 space-y-2">
+        {/* Аккаунт */}
         {isAuthenticated && user ? (
-          <div className="flex items-center justify-between">
+          <Link
+            href="/settings"
+            className="flex items-center justify-between p-2 lg:p-3 rounded-xl lg:rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200"
+          >
             <div className="flex items-center gap-2 lg:gap-3 min-w-0">
               {user.avatarUrl ? (
                 <img
@@ -167,28 +170,39 @@ export function Sidebar({ className }: SidebarProps) {
               </div>
             </div>
             <button
-              onClick={logout}
-              className="p-2 lg:p-2.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg lg:rounded-xl transition-all duration-200 active:scale-95"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                logout();
+              }}
+              className="p-2 lg:p-2.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg lg:rounded-xl transition-all duration-200 active:scale-95"
               title="Выйти"
             >
               <LogOut className="w-4 h-4 text-gray-500" />
             </button>
-          </div>
+          </Link>
         ) : (
           <Link
             href="/login"
-            className="block text-center py-3 lg:py-3.5 px-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl lg:rounded-2xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 active:scale-[0.98] text-sm lg:text-base"
+            className="flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200"
           >
-            Войти
+            <User className="w-5 h-5" />
+            <span className="font-medium text-sm lg:text-base">Аккаунт</span>
           </Link>
         )}
 
+        {/* Настройки */}
         <Link
           href="/settings"
-          className="flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 mt-2 lg:mt-3 rounded-xl lg:rounded-2xl text-gray-500 hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200"
+          className={cn(
+            'flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl transition-all duration-200',
+            pathname === '/settings'
+              ? 'bg-black/5 dark:bg-white/10 text-orange-500'
+              : 'text-gray-500 hover:bg-black/5 dark:hover:bg-white/5'
+          )}
         >
           <Settings className="w-5 h-5" />
-          <span className="text-xs lg:text-sm font-medium">Настройки</span>
+          <span className="text-sm lg:text-base font-medium">Настройки</span>
         </Link>
       </div>
     </>

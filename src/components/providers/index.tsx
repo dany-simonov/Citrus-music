@@ -8,6 +8,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, useEffect, ReactNode } from 'react';
 import { ThemeProvider } from './theme-provider';
+import { GlobalAudioController } from '@/components/player/global-audio-controller';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -36,6 +37,7 @@ export function Providers({ children }: ProvidersProps) {
         enableSystem
         disableTransitionOnChange
       >
+        <GlobalAudioController />
         {children}
       </ThemeProvider>
     </QueryClientProvider>

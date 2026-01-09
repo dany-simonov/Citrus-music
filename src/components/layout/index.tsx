@@ -20,8 +20,10 @@ export function MainLayout({ children }: MainLayoutProps) {
       <Sidebar />
 
       {/* Main content - adaptive margin */}
-      <main className="lg:ml-64 xl:ml-72 pb-24 pt-16 lg:pt-0 min-h-screen">
-        {children}
+      <main className="lg:ml-64 xl:ml-72 pb-28 pt-16 lg:pt-0 min-h-screen overflow-auto">
+        <div className="animate-fade-in">
+          {children}
+        </div>
       </main>
 
       {/* Player */}

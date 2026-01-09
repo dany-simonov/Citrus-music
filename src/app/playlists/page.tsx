@@ -10,6 +10,7 @@ import { useAuthStore } from '@/store/auth';
 import { useVKPlaylists } from '@/hooks/use-vk-api';
 import { useYandexPlaylists } from '@/hooks/use-yandex-api';
 import { PlaylistCard } from '@/components/playlist/playlist-card';
+import { MainLayout } from '@/components/layout';
 import { 
   ListMusic, 
   Plus, 
@@ -95,8 +96,8 @@ export default function PlaylistsPage() {
   ];
 
   return (
-    <div className="flex-1 overflow-auto">
-      <div className="p-8">
+    <MainLayout>
+      <div className="p-4 md:p-8 pb-32">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -223,6 +224,6 @@ export default function PlaylistsPage() {
           </>
         )}
       </div>
-    </div>
+    </MainLayout>
   );
 }

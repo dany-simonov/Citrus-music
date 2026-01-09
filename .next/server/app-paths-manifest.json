@@ -1,6 +1,5 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/settings/page": "app/settings/page.js",
+  "/search/page": "app/search/page.js",
   "/favorites/page": "app/favorites/page.js",
   "/library/page": "app/library/page.js",
   "/playlists/page": "app/playlists/page.js",

@@ -5,12 +5,13 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { useHistoryStore } from '@/store/history';
 import { TrackItem } from '@/components/track/track-item';
 import { vkApiService } from '@/services/vk';
 import { usePlayerStore } from '@/store/player';
+import { MainLayout } from '@/components/layout';
 import type { Track } from '@/types/audio';
 import { MusicSource } from '@/types/audio';
 import { 
@@ -37,37 +38,49 @@ export default function FavoritesPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const isLoadingRef = useRef(false);
 
   const isVKConnected = !!vkTokens?.accessToken;
   const isYandexConnected = !!yandexTokens?.accessToken;
   const hasAnyConnection = isVKConnected || isYandexConnected;
 
-  // Загружаем все треки при монтировании
+  // Загружаем все треки при монтировании (с защитой от дубликатов)
   useEffect(() => {
     const loadAllTracks = async () => {
-      if (!isVKConnected) return;
+      // Защита от повторного вызова
+      if (!isVKConnected || isLoadingRef.current) return;
+      isLoadingRef.current = true;
       
       setIsLoading(true);
       setError(null);
       
       try {
+        // Используем Map для предотвращения дубликатов
+        const tracksMap = new Map<string, Track>();
+        
         // Первый запрос для получения общего количества
         const firstResponse = await vkApiService.getAudio({ count: 100, offset: 0 });
         setTotalCount(firstResponse.count);
         
-        let allTracks: Track[] = firstResponse.items.map((item) => ({
-          id: `vk_${item.id}`,
-          title: item.title,
-          artist: item.artist,
-          duration: item.duration,
-          coverUrl: item.album?.thumb?.photo_300 || item.album?.thumb?.photo_600,
-          audioUrl: item.url,
-          source: MusicSource.VK,
-          sourceId: String(item.id),
-          isAvailable: !!item.url,
-        }));
+        // Добавляем первые треки
+        firstResponse.items.forEach((item) => {
+          const id = `vk_${item.id}`;
+          if (!tracksMap.has(id)) {
+            tracksMap.set(id, {
+              id,
+              title: item.title,
+              artist: item.artist,
+              duration: item.duration,
+              coverUrl: item.album?.thumb?.photo_300 || item.album?.thumb?.photo_600,
+              audioUrl: item.url,
+              source: MusicSource.VK,
+              sourceId: String(item.id),
+              isAvailable: !!item.url,
+            });
+          }
+        });
         
-        setFavorites(allTracks);
+        setFavorites(Array.from(tracksMap.values()));
         setIsLoading(false);
         
         // Загружаем остальные треки в фоне
@@ -82,19 +95,25 @@ export default function FavoritesPage() {
                 offset: page * 100 
               });
               
-              const newTracks: Track[] = response.items.map((item) => ({
-                id: `vk_${item.id}`,
-                title: item.title,
-                artist: item.artist,
-                duration: item.duration,
-                coverUrl: item.album?.thumb?.photo_300 || item.album?.thumb?.photo_600,
-                audioUrl: item.url,
-                source: MusicSource.VK,
-                sourceId: String(item.id),
-                isAvailable: !!item.url,
-              }));
+              // Добавляем новые треки без дубликатов
+              response.items.forEach((item) => {
+                const id = `vk_${item.id}`;
+                if (!tracksMap.has(id)) {
+                  tracksMap.set(id, {
+                    id,
+                    title: item.title,
+                    artist: item.artist,
+                    duration: item.duration,
+                    coverUrl: item.album?.thumb?.photo_300 || item.album?.thumb?.photo_600,
+                    audioUrl: item.url,
+                    source: MusicSource.VK,
+                    sourceId: String(item.id),
+                    isAvailable: !!item.url,
+                  });
+                }
+              });
               
-              setFavorites(prev => [...prev, ...newTracks]);
+              setFavorites(Array.from(tracksMap.values()));
               
               // Небольшая задержка чтобы не спамить API
               await new Promise(resolve => setTimeout(resolve, 300));
@@ -153,8 +172,8 @@ export default function FavoritesPage() {
   ];
 
   return (
-    <div className="flex-1 overflow-auto pb-32">
-      <div className="p-4 md:p-8">
+    <MainLayout>
+      <div className="p-4 md:p-8 pb-32">
         {/* Header with gradient */}
         <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-pink-500 via-red-500 to-orange-500 p-6 md:p-8 mb-6 md:mb-8 overflow-hidden">
           {/* Background pattern */}
@@ -326,6 +345,6 @@ export default function FavoritesPage() {
           </>
         )}
       </div>
-    </div>
+    </MainLayout>
   );
 }

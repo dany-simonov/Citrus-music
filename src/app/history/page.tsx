@@ -10,6 +10,7 @@ import { useAuthStore } from '@/store/auth';
 import { useHistoryStore, HistoryItem } from '@/store/history';
 import { usePlayerStore } from '@/store/player';
 import { TrackItem } from '@/components/track/track-item';
+import { MainLayout } from '@/components/layout';
 import { 
   Clock, 
   Music2,
@@ -102,8 +103,8 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="flex-1 overflow-auto pb-32">
-      <div className="p-4 md:p-8">
+    <MainLayout>
+      <div className="p-4 md:p-8 pb-32">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
           <div className="flex items-center gap-4">
@@ -282,6 +283,6 @@ export default function HistoryPage() {
           </div>
         )}
       </div>
-    </div>
+    </MainLayout>
   );
 }
