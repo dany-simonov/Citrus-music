@@ -451,12 +451,15 @@ export default function SettingsPage() {
               <span className="font-medium">1.0.0</span>
             </div>
             <a 
-              href="#" 
+              href="mailto:citrus.helper.team@gmail.com" 
               className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <HelpCircle className="w-5 h-5" />
-                <span>Помощь и поддержка</span>
+                <div>
+                  <span className="block">Помощь и поддержка</span>
+                  <span className="text-sm text-gray-500">citrus.helper.team@gmail.com</span>
+                </div>
               </div>
               <ExternalLink className="w-4 h-4 text-gray-400" />
             </a>
