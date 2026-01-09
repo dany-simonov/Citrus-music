@@ -5,9 +5,11 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Track, PlayerState } from '@/types/audio';
 import { usePlayerStore } from '@/store/player';
 import { useHistoryStore } from '@/store/history';
+import { useCoversStore, fetchDeezerCover } from '@/store/covers';
 import { cn, formatDuration } from '@/lib/utils';
 import { Play, Pause, Heart, ListMusic } from 'lucide-react';
 import { TrackMenu } from './track-menu';
@@ -34,6 +36,44 @@ export function TrackItem({
 }: TrackItemProps) {
   const { currentTrack, playerState, togglePlay, addToQueue, playPlaylist } = usePlayerStore();
   const { addToHistory } = useHistoryStore();
+  const { getCover, setCover, isLoading, setLoading } = useCoversStore();
+  
+  const [coverUrl, setCoverUrl] = useState<string | undefined>(track.coverUrl);
+  
+  // Ищем обложку если её нет
+  useEffect(() => {
+    const fetchCover = async () => {
+      // Если уже есть обложка, ничего не делаем
+      if (track.coverUrl) {
+        setCoverUrl(track.coverUrl);
+        return;
+      }
+      
+      // Проверяем кэш
+      const cachedCover = getCover(track.id);
+      if (cachedCover) {
+        setCoverUrl(cachedCover);
+        return;
+      }
+      
+      // Если уже загружаем, пропускаем
+      if (isLoading(track.id)) return;
+      
+      // Ищем через Deezer
+      setLoading(track.id, true);
+      try {
+        const deezerCover = await fetchDeezerCover(track.artist, track.title);
+        if (deezerCover) {
+          setCover(track.id, deezerCover);
+          setCoverUrl(deezerCover);
+        }
+      } finally {
+        setLoading(track.id, false);
+      }
+    };
+    
+    fetchCover();
+  }, [track.id, track.coverUrl, track.artist, track.title, getCover, setCover, isLoading, setLoading]);
   
   const isCurrentTrack = currentTrack?.id === track.id;
   const isPlaying = isCurrentTrack && playerState === PlayerState.PLAYING;
@@ -104,11 +144,8 @@ export function TrackItem({
         compact ? 'w-10 h-10' : 'w-10 h-10 md:w-12 md:h-12'
       )}>
         <SafeImage
-          src={track.coverUrl || ''}
+          src={coverUrl}
           alt={track.title}
-          fill
-          className="object-cover"
-          sizes="48px"
           fallbackType="track"
         />
       </div>

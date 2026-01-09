@@ -5,7 +5,9 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import { usePlayerStore } from '@/store/player';
+import { useCoversStore, fetchDeezerCover } from '@/store/covers';
 import { PlayerState, RepeatMode } from '@/types/audio';
 import { formatDuration, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,7 +24,6 @@ import {
   ListMusic,
   Heart,
 } from 'lucide-react';
-import Image from 'next/image';
 
 export function Player() {
   const {
@@ -43,6 +44,49 @@ export function Player() {
     toggleRepeat,
     toggleShuffle,
   } = usePlayerStore();
+  
+  const { getCover, setCover, isLoading, setLoading } = useCoversStore();
+  const [coverUrl, setCoverUrl] = useState<string | undefined>();
+  
+  // Ищем обложку для текущего трека
+  useEffect(() => {
+    if (!currentTrack) {
+      setCoverUrl(undefined);
+      return;
+    }
+    
+    const fetchCover = async () => {
+      // Если есть обложка у трека
+      if (currentTrack.coverUrl) {
+        setCoverUrl(currentTrack.coverUrl);
+        return;
+      }
+      
+      // Проверяем кэш
+      const cachedCover = getCover(currentTrack.id);
+      if (cachedCover) {
+        setCoverUrl(cachedCover);
+        return;
+      }
+      
+      // Если уже загружаем, пропускаем
+      if (isLoading(currentTrack.id)) return;
+      
+      // Ищем через Deezer
+      setLoading(currentTrack.id, true);
+      try {
+        const deezerCover = await fetchDeezerCover(currentTrack.artist, currentTrack.title);
+        if (deezerCover) {
+          setCover(currentTrack.id, deezerCover);
+          setCoverUrl(deezerCover);
+        }
+      } finally {
+        setLoading(currentTrack.id, false);
+      }
+    };
+    
+    fetchCover();
+  }, [currentTrack?.id, currentTrack?.coverUrl, currentTrack?.artist, currentTrack?.title]);
 
   const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     seek(parseFloat(e.target.value));
@@ -58,7 +102,7 @@ export function Player() {
   }
 
   const isPlaying = playerState === PlayerState.PLAYING;
-  const isLoading = playerState === PlayerState.LOADING;
+  const isLoading_ = playerState === PlayerState.LOADING;
 
   return (
     <div className="player-container">
@@ -87,12 +131,11 @@ export function Player() {
         {/* Информация о треке */}
         <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1 md:w-1/4 md:flex-none">
           <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl overflow-hidden bg-gray-100 dark:bg-neutral-800 flex-shrink-0 shadow-lg">
-            {currentTrack.coverUrl ? (
-              <Image
-                src={currentTrack.coverUrl}
+            {coverUrl ? (
+              <img
+                src={coverUrl}
                 alt={currentTrack.title}
-                fill
-                className="object-cover"
+                className="w-full h-full object-cover"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
@@ -130,10 +173,10 @@ export function Player() {
             <Button
               variant="icon"
               onClick={togglePlay}
-              disabled={isLoading}
+              disabled={isLoading_}
               className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl shadow-orange-500/30 hover:shadow-orange-500/40 hover:scale-105 active:scale-95 transition-all"
             >
-              {isLoading ? (
+              {isLoading_ ? (
                 <svg
                   className="animate-spin h-7 w-7"
                   xmlns="http://www.w3.org/2000/svg"

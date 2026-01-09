@@ -74,6 +74,7 @@ export interface VKPlaylist {
   update_time?: number;
   is_following?: boolean;
   photo?: VKPlaylistPhoto;
+  thumbs?: VKPlaylistPhoto[];
   access_key?: string;
   audios?: VKAudio[];
   main_artists?: VKArtist[];

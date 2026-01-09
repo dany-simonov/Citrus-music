@@ -143,9 +143,27 @@ export function getVKPlaylistCover(photo: {
   photo_300?: string;
   photo_270?: string;
   photo_135?: string;
-} | undefined): string {
-  if (!photo) return '/images/default-cover.png';
-  return photo.photo_600 || photo.photo_300 || photo.photo_270 || photo.photo_135 || '/images/default-cover.png';
+} | undefined, thumbs?: Array<{
+  photo_1200?: string;
+  photo_600?: string;
+  photo_300?: string;
+  photo_270?: string;
+  photo_135?: string;
+}>): string {
+  // Сначала пробуем photo
+  if (photo) {
+    const url = photo.photo_600 || photo.photo_300 || photo.photo_270 || photo.photo_135 || photo.photo_1200;
+    if (url) return url;
+  }
+  
+  // Потом пробуем thumbs
+  if (thumbs && thumbs.length > 0) {
+    const thumb = thumbs[0];
+    const url = thumb.photo_600 || thumb.photo_300 || thumb.photo_270 || thumb.photo_135 || thumb.photo_1200;
+    if (url) return url;
+  }
+  
+  return '/images/default-cover.png';
 }
 
 /**

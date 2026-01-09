@@ -14,6 +14,8 @@ import { usePlayerStore } from '@/store/player';
 import { MainLayout } from '@/components/layout';
 import type { Track } from '@/types/audio';
 import { MusicSource } from '@/types/audio';
+import type { VKAudio } from '@/types/vk';
+import { getVKAudioCover } from '@/lib/cover-utils';
 import { 
   Heart, 
   Loader2,
@@ -21,7 +23,8 @@ import {
   Play,
   Shuffle,
   Search,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -71,10 +74,9 @@ export default function FavoritesPage() {
               title: item.title,
               artist: item.artist,
               duration: item.duration,
-              coverUrl: item.album?.thumb?.photo_300 || item.album?.thumb?.photo_600,
+              coverUrl: getVKAudioCover(item),
               audioUrl: item.url,
               source: MusicSource.VK,
-              sourceId: String(item.id),
               isAvailable: !!item.url,
             });
           }
@@ -104,10 +106,9 @@ export default function FavoritesPage() {
                     title: item.title,
                     artist: item.artist,
                     duration: item.duration,
-                    coverUrl: item.album?.thumb?.photo_300 || item.album?.thumb?.photo_600,
+                    coverUrl: getVKAudioCover(item),
                     audioUrl: item.url,
                     source: MusicSource.VK,
-                    sourceId: String(item.id),
                     isAvailable: !!item.url,
                   });
                 }

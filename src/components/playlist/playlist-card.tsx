@@ -40,11 +40,9 @@ export function PlaylistCard({ playlist, onPlay, className }: PlaylistCardProps)
       {/* Обложка */}
       <div className="relative aspect-square rounded-2xl overflow-hidden mb-4 bg-gray-100 dark:bg-neutral-800 shadow-lg group-hover:shadow-xl transition-shadow">
         <SafeImage
-          src={playlist.coverUrl || ''}
+          src={playlist.coverUrl}
           alt={playlist.title}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+          className="group-hover:scale-105 transition-transform duration-500"
           fallbackType="playlist"
         />
         

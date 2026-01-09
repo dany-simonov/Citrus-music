@@ -11,10 +11,29 @@ import { getVKPlaylistCover } from './utils';
  * Преобразует VK аудио в формат Track
  */
 export function transformVKAudioToTrack(audio: VKAudio): Track {
-  // Получаем обложку из альбома, если есть
+  // Получаем обложку из альбома - проверяем разные поля
   let coverUrl: string | undefined;
-  if (audio.album?.thumb?.url) {
-    coverUrl = audio.album.thumb.url;
+  
+  // VK возвращает обложку в album.thumb в разных форматах
+  if (audio.album) {
+    const album = audio.album as any;
+    
+    // Формат 1: album.thumb.url
+    if (album.thumb?.url) {
+      coverUrl = album.thumb.url;
+    }
+    // Формат 2: album.thumb.photo_XXX
+    else if (album.thumb?.photo_600 || album.thumb?.photo_300) {
+      coverUrl = album.thumb.photo_600 || album.thumb.photo_300 || album.thumb.photo_270 || album.thumb.photo_135;
+    }
+    // Формат 3: album.photo.photo_XXX
+    else if (album.photo) {
+      coverUrl = album.photo.photo_600 || album.photo.photo_300 || album.photo.photo_270 || album.photo.photo_135;
+    }
+    // Формат 4: album напрямую с photo_XXX (иногда VK так возвращает)
+    else if (album.photo_600 || album.photo_300) {
+      coverUrl = album.photo_600 || album.photo_300 || album.photo_270 || album.photo_135;
+    }
   }
 
   return {
@@ -41,7 +60,7 @@ export function transformVKAudiosToTracks(audios: VKAudio[]): Track[] {
  * Преобразует VK плейлист в формат Playlist
  */
 export function transformVKPlaylistToPlaylist(playlist: VKPlaylist): Playlist {
-  const coverUrl = getVKPlaylistCover(playlist.photo);
+  const coverUrl = getVKPlaylistCover(playlist.photo, playlist.thumbs);
 
   return {
     id: `vk_${playlist.owner_id}_${playlist.id}`,

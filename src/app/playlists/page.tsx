@@ -5,95 +5,125 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
-import { useVKPlaylists } from '@/hooks/use-vk-api';
-import { useYandexPlaylists } from '@/hooks/use-yandex-api';
-import { PlaylistCard } from '@/components/playlist/playlist-card';
+import { vkApiService } from '@/services/vk';
 import { MainLayout } from '@/components/layout';
+import { SafeImage } from '@/components/ui/safe-image';
 import { 
   ListMusic, 
   Plus, 
   Loader2,
   Music2,
-  Disc3
+  Disc3,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
 
 type SourceTab = 'all' | 'vk' | 'yandex';
 
+interface PlaylistItem {
+  id: string;
+  title: string;
+  cover?: string;
+  trackCount?: number;
+  source: 'vk' | 'yandex';
+  ownerId?: number;
+  accessKey?: string;
+}
+
 export default function PlaylistsPage() {
-  const { vkTokens, yandexTokens, vkUser, yandexUser } = useAuthStore();
+  const { vkTokens, yandexTokens, isAuthenticated } = useAuthStore();
   const [activeSource, setActiveSource] = useState<SourceTab>('all');
+  const [playlists, setPlaylists] = useState<PlaylistItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isVKConnected = !!vkTokens?.accessToken;
   const isYandexConnected = !!yandexTokens?.accessToken;
   const hasAnyConnection = isVKConnected || isYandexConnected;
 
-  // Fetch data from both sources
-  // VK API может получить плейлисты без owner_id - использует текущего пользователя
-  const { 
-    data: vkPlaylistsData, 
-    isLoading: vkLoading 
-  } = useVKPlaylists(
-    isVKConnected && (activeSource === 'all' || activeSource === 'vk') 
-      ? vkUser?.id ? { owner_id: Number(vkUser.id) } : {}
-      : undefined
-  );
-
-  const { 
-    data: yandexPlaylists, 
-    isLoading: yandexLoading 
-  } = useYandexPlaylists();
-  
-  // Extract playlists array from VK response
-  const vkPlaylists = vkPlaylistsData?.items || [];
-
-  const isLoading = vkLoading || yandexLoading;
-
-  // Combine playlists based on active source
-  const getDisplayPlaylists = () => {
-    const allPlaylists: Array<{
-      id: string;
-      title: string;
-      cover?: string;
-      trackCount?: number;
-      source: 'vk' | 'yandex';
-    }> = [];
-
-    if ((activeSource === 'all' || activeSource === 'vk') && vkPlaylists && vkPlaylists.length > 0) {
-      vkPlaylists.forEach((p: any) => {
-        allPlaylists.push({
-          id: `vk_${p.owner_id}_${p.id}`,
-          title: p.title,
-          cover: p.photo?.photo_300 || p.thumbs?.[0]?.photo_300,
-          trackCount: p.count,
-          source: 'vk',
-        });
-      });
+  // Загрузка плейлистов напрямую через API
+  const loadPlaylists = async () => {
+    if (!hasAnyConnection) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    const allPlaylists: PlaylistItem[] = [];
+    
+    try {
+      // Загружаем плейлисты VK
+      if (isVKConnected && (activeSource === 'all' || activeSource === 'vk')) {
+        try {
+          // Сначала получаем текущего пользователя для owner_id
+          const currentUser = await vkApiService.getCurrentUser();
+          
+          if (!currentUser?.id) {
+            throw new Error('Не удалось получить ID пользователя VK');
+          }
+          
+          // Теперь запрашиваем плейлисты с owner_id
+          const vkData = await vkApiService.getPlaylists({ 
+            owner_id: currentUser.id,
+            count: 100 
+          });
+          
+          if (vkData?.items && vkData.items.length > 0) {
+            vkData.items.forEach((p) => {
+              // Получаем обложку из разных полей
+              let cover = p.photo?.photo_600 || 
+                          p.photo?.photo_300 || 
+                          (p.thumbs && p.thumbs.length > 0 ? (p.thumbs[0].photo_600 || p.thumbs[0].photo_300) : undefined);
+              
+              allPlaylists.push({
+                id: `vk_${p.owner_id}_${p.id}`,
+                title: p.title,
+                cover: cover,
+                trackCount: p.count,
+                source: 'vk',
+                ownerId: p.owner_id,
+                accessKey: p.access_key,
+              });
+            });
+          }
+        } catch (vkError: any) {
+          console.error('Error loading VK playlists:', vkError);
+          if (!allPlaylists.length) {
+            throw vkError;
+          }
+        }
+      }
+      
+      setPlaylists(allPlaylists);
+    } catch (err: any) {
+      console.error('Error loading playlists:', err);
+      setError(err.message || 'Ошибка загрузки плейлистов');
+    } finally {
+      setIsLoading(false);
     }
-
-    if ((activeSource === 'all' || activeSource === 'yandex') && yandexPlaylists && isYandexConnected) {
-      (yandexPlaylists as any[]).forEach((p: any) => {
-        allPlaylists.push({
-          id: `yandex-${p.kind}`,
-          title: p.title,
-          cover: p.cover?.uri?.replace('%%', '400x400'),
-          trackCount: p.trackCount,
-          source: 'yandex',
-        });
-      });
-    }
-
-    return allPlaylists;
   };
 
-  const displayPlaylists = getDisplayPlaylists();
+  // Загружаем плейлисты при монтировании и при смене источника
+  useEffect(() => {
+    if (hasAnyConnection) {
+      loadPlaylists();
+    }
+  }, [isVKConnected, isYandexConnected, activeSource]);
+
+  // Фильтрация плейлистов по источнику
+  const displayPlaylists = activeSource === 'all' 
+    ? playlists 
+    : playlists.filter(p => p.source === activeSource);
+
+  const vkCount = playlists.filter(p => p.source === 'vk').length;
+  const yandexCount = playlists.filter(p => p.source === 'yandex').length;
 
   const sourceTabs = [
-    { id: 'all' as SourceTab, label: 'Все', count: displayPlaylists.length },
-    ...(isVKConnected ? [{ id: 'vk' as SourceTab, label: 'VK', count: vkPlaylists.length }] : []),
-    ...(isYandexConnected ? [{ id: 'yandex' as SourceTab, label: 'Яндекс', count: yandexPlaylists?.length || 0 }] : []),
+    { id: 'all' as SourceTab, label: 'Все', count: playlists.length },
+    ...(isVKConnected ? [{ id: 'vk' as SourceTab, label: 'VK', count: vkCount }] : []),
+    ...(isYandexConnected ? [{ id: 'yandex' as SourceTab, label: 'Яндекс', count: yandexCount }] : []),
   ];
 
   return (
@@ -126,6 +156,15 @@ export default function PlaylistsPage() {
               <Plus className="w-4 h-4 md:w-5 md:h-5" />
               Создать плейлист
             </button>
+            {hasAnyConnection && (
+              <button 
+                onClick={loadPlaylists}
+                disabled={isLoading}
+                className="px-4 md:px-5 py-3 md:py-4 bg-white/20 hover:bg-white/30 text-white rounded-full font-semibold transition-all flex items-center gap-2 text-sm md:text-base disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 md:w-5 md:h-5 ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -148,8 +187,28 @@ export default function PlaylistsPage() {
           </div>
         )}
 
+        {/* Error state */}
+        {error && hasAnyConnection && (
+          <div className="flex flex-col items-center justify-center py-12 md:py-20 text-center">
+            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4 md:mb-6">
+              <AlertCircle className="w-8 h-8 md:w-10 md:h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl md:text-2xl font-bold mb-2">Ошибка загрузки</h2>
+            <p className="text-gray-500 mb-6 md:mb-8 max-w-md px-4 text-sm md:text-base">
+              {error}
+            </p>
+            <button
+              onClick={loadPlaylists}
+              className="px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl md:rounded-2xl font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all text-sm md:text-base flex items-center gap-2"
+            >
+              <RefreshCw className="w-5 h-5" />
+              Повторить
+            </button>
+          </div>
+        )}
+
         {/* Source tabs */}
-        {hasAnyConnection && sourceTabs.length > 1 && (
+        {hasAnyConnection && !error && sourceTabs.length > 1 && (
           <div className="flex gap-2 mb-6 md:mb-8 p-1.5 bg-gray-100 dark:bg-neutral-800 rounded-xl md:rounded-2xl w-fit">
             {sourceTabs.map((tab) => (
               <button
@@ -178,7 +237,7 @@ export default function PlaylistsPage() {
         )}
 
         {/* Playlists grid */}
-        {hasAnyConnection && !isLoading && (
+        {hasAnyConnection && !isLoading && !error && (
           <>
             {displayPlaylists.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
@@ -190,13 +249,14 @@ export default function PlaylistsPage() {
                   >
                     <div className="aspect-square rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-neutral-800 dark:to-neutral-900 overflow-hidden mb-3 shadow-lg group-hover:shadow-xl transition-all relative">
                       {playlist.cover ? (
-                        <img
+                        <SafeImage
                           src={playlist.cover}
                           alt={playlist.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          fallbackIcon={<Disc3 className="w-16 h-16 text-gray-400" />}
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-pink-500/20">
                           <Disc3 className="w-16 h-16 text-gray-400" />
                         </div>
                       )}

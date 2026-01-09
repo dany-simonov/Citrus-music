@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
+import { MainLayout } from '@/components/layout';
 import { MusicSource } from '@/types/audio';
 import { 
   Settings, 
@@ -19,9 +20,16 @@ import {
   Trash2,
   Music,
   User,
-  LogOut
+  LogOut,
+  Moon,
+  Sun,
+  Volume2,
+  Bell,
+  Download,
+  Shield,
+  HelpCircle,
+  Info
 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 
 export default function SettingsPage() {
@@ -39,8 +47,11 @@ export default function SettingsPage() {
   const [showToken, setShowToken] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [audioQuality, setAudioQuality] = useState<'auto' | 'high' | 'medium' | 'low'>('auto');
+  const [notifications, setNotifications] = useState(true);
+  const [autoDownload, setAutoDownload] = useState(false);
 
-  // Загружаем сохранённый токен при монтировании
   useEffect(() => {
     if (vkTokens?.accessToken) {
       setVkToken(vkTokens.accessToken);
@@ -55,7 +66,6 @@ export default function SettingsPage() {
     }
 
     try {
-      // Проверяем токен запросом к API через прокси
       const response = await fetch('/api/vk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -75,15 +85,13 @@ export default function SettingsPage() {
 
       const user = data.response[0];
 
-      // Сохраняем токен
       setVKTokens({
         accessToken: vkToken,
-        expiresIn: 0, // Kate Mobile токены не истекают
+        expiresIn: 0,
         userId: user.id,
-        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 год
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       });
 
-      // Обновляем информацию о пользователе в store
       useAuthStore.getState().setVKUser({
         id: String(user.id),
         firstName: user.first_name,
@@ -111,8 +119,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex-1 overflow-auto">
-      <div className="max-w-3xl mx-auto p-8">
+    <MainLayout>
+      <div className="p-4 md:p-8 pb-32 max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-neutral-800 dark:to-neutral-900 flex items-center justify-center">
@@ -120,7 +128,114 @@ export default function SettingsPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold">Настройки</h1>
-            <p className="text-gray-500">Управление аккаунтами и токенами</p>
+            <p className="text-gray-500">Настройте приложение под себя</p>
+          </div>
+        </div>
+
+        {/* Appearance Section */}
+        <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 mb-6 border border-gray-200 dark:border-neutral-800">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Sun className="w-5 h-5" />
+            Внешний вид
+          </h2>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl">
+              <div className="flex items-center gap-3">
+                {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                <div>
+                  <p className="font-medium">Тёмная тема</p>
+                  <p className="text-sm text-gray-500">Включить тёмное оформление</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className={`w-14 h-8 rounded-full transition-colors ${
+                  isDarkMode ? 'bg-orange-500' : 'bg-gray-300'
+                }`}
+              >
+                <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform mx-1 ${
+                  isDarkMode ? 'translate-x-6' : 'translate-x-0'
+                }`} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Audio Section */}
+        <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 mb-6 border border-gray-200 dark:border-neutral-800">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Volume2 className="w-5 h-5" />
+            Звук
+          </h2>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl">
+              <p className="font-medium mb-3">Качество аудио</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {(['auto', 'high', 'medium', 'low'] as const).map((quality) => (
+                  <button
+                    key={quality}
+                    onClick={() => setAudioQuality(quality)}
+                    className={`px-4 py-2 rounded-xl font-medium transition-colors ${
+                      audioQuality === quality
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-gray-200 dark:bg-neutral-700 hover:bg-gray-300 dark:hover:bg-neutral-600'
+                    }`}
+                  >
+                    {quality === 'auto' && 'Авто'}
+                    {quality === 'high' && 'Высокое'}
+                    {quality === 'medium' && 'Среднее'}
+                    {quality === 'low' && 'Низкое'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <Download className="w-5 h-5" />
+                <div>
+                  <p className="font-medium">Автозагрузка</p>
+                  <p className="text-sm text-gray-500">Загружать треки для офлайн</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setAutoDownload(!autoDownload)}
+                className={`w-14 h-8 rounded-full transition-colors ${
+                  autoDownload ? 'bg-orange-500' : 'bg-gray-300'
+                }`}
+              >
+                <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform mx-1 ${
+                  autoDownload ? 'translate-x-6' : 'translate-x-0'
+                }`} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Notifications Section */}
+        <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 mb-6 border border-gray-200 dark:border-neutral-800">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Bell className="w-5 h-5" />
+            Уведомления
+          </h2>
+          
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl">
+            <div>
+              <p className="font-medium">Push-уведомления</p>
+              <p className="text-sm text-gray-500">Новые релизы и рекомендации</p>
+            </div>
+            <button
+              onClick={() => setNotifications(!notifications)}
+              className={`w-14 h-8 rounded-full transition-colors ${
+                notifications ? 'bg-orange-500' : 'bg-gray-300'
+              }`}
+            >
+              <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform mx-1 ${
+                notifications ? 'translate-x-6' : 'translate-x-0'
+              }`} />
+            </button>
           </div>
         </div>
 
@@ -146,15 +261,12 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* Connected user info */}
           {vkUser && (
             <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl mb-6">
               {vkUser.avatarUrl ? (
-                <Image
+                <img
                   src={vkUser.avatarUrl}
                   alt={vkUser.firstName}
-                  width={48}
-                  height={48}
                   className="w-12 h-12 rounded-full"
                 />
               ) : (
@@ -176,7 +288,6 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Token input */}
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">
@@ -202,7 +313,6 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Status messages */}
             {saveStatus === 'error' && (
               <div className="flex items-center gap-2 text-red-500 text-sm">
                 <AlertCircle className="w-4 h-4" />
@@ -216,7 +326,6 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex gap-3">
               <button
                 onClick={handleSaveVKToken}
@@ -239,7 +348,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Instructions */}
           <div className="mt-6 p-4 bg-blue-500/10 rounded-2xl">
             <h3 className="font-semibold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-2">
               <Key className="w-4 h-4" />
@@ -258,7 +366,7 @@ export default function SettingsPage() {
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </li>
-              <li>Нажмите <strong>"Kate Mobile"</strong></li>
+              <li>Нажмите <strong>&quot;Kate Mobile&quot;</strong></li>
               <li>Авторизуйтесь в VK</li>
               <li>Скопируйте токен из адресной строки (после <code className="bg-gray-200 dark:bg-neutral-700 px-1 rounded">access_token=</code>)</li>
               <li>Вставьте токен в поле выше</li>
@@ -270,13 +378,13 @@ export default function SettingsPage() {
         </div>
 
         {/* Yandex Section */}
-        <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-gray-200 dark:border-neutral-800">
+        <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 mb-6 border border-gray-200 dark:border-neutral-800">
           <div className="flex items-start gap-4 mb-6">
             <div className="w-12 h-12 rounded-xl bg-yellow-500 flex items-center justify-center flex-shrink-0">
               <Music className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-bold mb-1">Яндекс</h2>
+              <h2 className="text-xl font-bold mb-1">Яндекс Музыка</h2>
               <p className="text-gray-500 text-sm">
                 Авторизация через Яндекс ID
               </p>
@@ -294,11 +402,9 @@ export default function SettingsPage() {
           {yandexUser ? (
             <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl">
               {yandexUser.avatarUrl ? (
-                <Image
+                <img
                   src={yandexUser.avatarUrl}
                   alt={yandexUser.firstName}
-                  width={48}
-                  height={48}
                   className="w-12 h-12 rounded-full"
                 />
               ) : (
@@ -331,7 +437,42 @@ export default function SettingsPage() {
             ℹ️ Яндекс Музыка API закрыт для сторонних приложений. Авторизация нужна только для идентификации.
           </p>
         </div>
+
+        {/* About Section */}
+        <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-gray-200 dark:border-neutral-800">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Info className="w-5 h-5" />
+            О приложении
+          </h2>
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl">
+              <span className="text-gray-500">Версия</span>
+              <span className="font-medium">1.0.0</span>
+            </div>
+            <a 
+              href="#" 
+              className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <HelpCircle className="w-5 h-5" />
+                <span>Помощь и поддержка</span>
+              </div>
+              <ExternalLink className="w-4 h-4 text-gray-400" />
+            </a>
+            <a 
+              href="#" 
+              className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Shield className="w-5 h-5" />
+                <span>Политика конфиденциальности</span>
+              </div>
+              <ExternalLink className="w-4 h-4 text-gray-400" />
+            </a>
+          </div>
+        </div>
       </div>
-    </div>
+    </MainLayout>
   );
 }

@@ -159,7 +159,10 @@ export function Sidebar({ className }: SidebarProps) {
         {/* Аккаунт - теперь снизу */}
         {isAuthenticated && user ? (
           <div className="flex items-center justify-between p-2 lg:p-3 rounded-xl lg:rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200">
-            <div className="flex items-center gap-2 lg:gap-3 min-w-0">
+            <Link 
+              href="/account"
+              className="flex items-center gap-2 lg:gap-3 min-w-0 flex-1"
+            >
               {user.avatarUrl ? (
                 <img
                   src={user.avatarUrl}
@@ -179,7 +182,7 @@ export function Sidebar({ className }: SidebarProps) {
                   {vkUser ? 'ВКонтакте' : yandexUser ? 'Яндекс' : ''}
                 </span>
               </div>
-            </div>
+            </Link>
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -194,7 +197,7 @@ export function Sidebar({ className }: SidebarProps) {
           </div>
         ) : (
           <Link
-            href="/login"
+            href="/account"
             className="flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200"
           >
             <User className="w-5 h-5" />
