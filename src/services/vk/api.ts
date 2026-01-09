@@ -3,7 +3,6 @@
  * @module services/vk/api
  */
 
-import { VK_CONFIG } from '@/lib/config';
 import { vkAuthService } from './auth';
 import type {
   VKApiResponse,
@@ -38,7 +37,7 @@ export class VKApiService {
   }
   
   /**
-   * Выполняет запрос к VK API
+   * Выполняет запрос к VK API через серверный прокси (обход CORS)
    */
   private async request<T>(
     method: string,
@@ -50,25 +49,22 @@ export class VKApiService {
       throw new Error('Not authenticated with VK');
     }
     
-    // Формируем параметры запроса
-    const queryParams = new URLSearchParams();
-    queryParams.append('access_token', tokens.accessToken);
-    queryParams.append('v', VK_CONFIG.API_VERSION);
-    
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        queryParams.append(key, String(value));
-      }
-    });
-    
-    const url = `${VK_CONFIG.API_URL}/${method}?${queryParams.toString()}`;
-    
-    const response = await fetch(url, {
-      method: 'GET',
+    // Используем серверный прокси для обхода CORS
+    const response = await fetch('/api/vk', {
+      method: 'POST',
       headers: {
-        'Accept': 'application/json',
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        method,
+        params,
+        accessToken: tokens.accessToken,
+      }),
     });
+    
+    if (!response.ok) {
+      throw new Error(`Proxy request failed: ${response.status}`);
+    }
     
     const data = await response.json();
     
