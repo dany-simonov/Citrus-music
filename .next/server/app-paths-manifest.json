@@ -1,10 +1,9 @@
 {
-  "/page": "app/page.js",
+  "/search/page": "app/search/page.js",
   "/playlists/page": "app/playlists/page.js",
-  "/api/vk/route": "app/api/vk/route.js",
   "/favorites/page": "app/favorites/page.js",
-  "/account/page": "app/account/page.js",
-  "/history/page": "app/history/page.js",
-  "/login/page": "app/login/page.js",
-  "/api/deezer/route": "app/api/deezer/route.js"
+  "/api/vk/route": "app/api/vk/route.js",
+  "/api/deezer/route": "app/api/deezer/route.js",
+  "/api/favorites/route": "app/api/favorites/route.js",
+  "/api/playlists/route": "app/api/playlists/route.js"
 }

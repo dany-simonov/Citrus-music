@@ -29,6 +29,7 @@ interface PlaylistsState {
   loadPlaylists: () => Promise<void>;
   createPlaylist: (title: string, description?: string) => Promise<UserPlaylist | null>;
   deletePlaylist: (playlistId: string) => Promise<void>;
+  updatePlaylist: (playlistId: string, data: { name?: string; description?: string }) => Promise<void>;
   addTrackToPlaylist: (playlistId: string, track: Track) => Promise<boolean>;
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
   getPlaylist: (playlistId: string) => UserPlaylist | undefined;
@@ -134,6 +135,35 @@ export const usePlaylistsStore = create<PlaylistsState>()(
           });
         } catch (error) {
           console.error('Error deleting playlist:', error);
+        }
+      },
+      
+      updatePlaylist: async (playlistId, data) => {
+        const { playlists } = get();
+        
+        // Обновляем локально
+        const updatedPlaylists = playlists.map(p => {
+          if (p.id === playlistId) {
+            return {
+              ...p,
+              title: data.name || p.title,
+              description: data.description ?? p.description,
+              updatedAt: new Date(),
+            };
+          }
+          return p;
+        });
+        
+        set({ playlists: updatedPlaylists });
+        
+        try {
+          await fetch(`/api/playlists`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ playlistId, ...data }),
+          });
+        } catch (error) {
+          console.error('Error updating playlist:', error);
         }
       },
       

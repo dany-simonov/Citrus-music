@@ -46,6 +46,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'userId and title required' }, { status: 400 });
     }
     
+    // Сначала создаём пользователя если его нет
+    await prisma.user.upsert({
+      where: { id: userId },
+      update: {},
+      create: { id: userId },
+    });
+    
     const playlist = await prisma.playlist.create({
       data: {
         userId,
@@ -79,6 +86,33 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting playlist:', error);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+}
+
+// PATCH - обновить плейлист
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { playlistId, name, description, coverUrl } = body;
+    
+    if (!playlistId) {
+      return NextResponse.json({ error: 'playlistId required' }, { status: 400 });
+    }
+    
+    const updateData: any = {};
+    if (name !== undefined) updateData.title = name;
+    if (description !== undefined) updateData.description = description;
+    if (coverUrl !== undefined) updateData.coverUrl = coverUrl;
+    
+    const playlist = await prisma.playlist.update({
+      where: { id: playlistId },
+      data: updateData,
+    });
+    
+    return NextResponse.json({ playlist });
+  } catch (error) {
+    console.error('Error updating playlist:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

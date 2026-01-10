@@ -15,7 +15,7 @@ model User {
   id            String     @id @default(cuid())
   vkId          String?    @unique
   yandexId      String?    @unique
-  firstName     String
+  firstName     String?
   lastName      String?
   avatarUrl     String?
   createdAt     DateTime   @default(now())

@@ -44,11 +44,7 @@ export function TrackItem({
   const [coverUrl, setCoverUrl] = useState<string | undefined>(track.coverUrl);
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   
-  // Загружаем избранное при монтировании
-  useEffect(() => {
-    loadFavorites();
-  }, [loadFavorites]);
-  
+  // НЕ загружаем избранное здесь - это делается один раз в providers
   const isLiked = isFavorite(track.id);
   
   // Ищем обложку если её нет

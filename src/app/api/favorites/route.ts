@@ -38,6 +38,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'userId and track required' }, { status: 400 });
     }
     
+    // Сначала создаём пользователя если его нет
+    await prisma.user.upsert({
+      where: { id: userId },
+      update: {},
+      create: { id: userId },
+    });
+    
     // Проверяем, не добавлен ли уже
     const existing = await prisma.favorite.findUnique({
       where: {

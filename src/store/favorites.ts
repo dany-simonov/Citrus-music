@@ -93,8 +93,9 @@ export const useFavoritesStore = create<FavoritesState>()(
       },
       
       loadFavorites: async () => {
-        const { userId } = get();
-        if (!userId) return;
+        const { userId, isLoading } = get();
+        // Предотвращаем множественные одновременные загрузки
+        if (!userId || isLoading) return;
         
         set({ isLoading: true });
         
