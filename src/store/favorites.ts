@@ -22,6 +22,7 @@ interface FavoritesState {
   // Данные
   favorites: FavoriteTrack[];
   actionsHistory: FavoriteAction[];
+  unreadActionsCount: number; // Количество непрочитанных действий
   userId: string | null;
   isLoading: boolean;
   isInitialized: boolean; // Флаг синхронизации с VK
@@ -38,6 +39,9 @@ interface FavoritesState {
   bulkAddToFavorites: (tracks: Track[]) => void;
   setInitialized: (value: boolean) => void;
   clearActionsHistory: () => void;
+  
+  // Отметить историю как прочитанную
+  markHistoryAsRead: () => void;
 }
 
 export const useFavoritesStore = create<FavoritesState>()(
@@ -45,6 +49,7 @@ export const useFavoritesStore = create<FavoritesState>()(
     (set, get) => ({
       favorites: [],
       actionsHistory: [],
+      unreadActionsCount: 0,
       userId: null,
       isLoading: false,
       isInitialized: false,
@@ -57,7 +62,7 @@ export const useFavoritesStore = create<FavoritesState>()(
       },
       
       addToFavorites: async (track) => {
-        const { userId, favorites, actionsHistory } = get();
+        const { userId, favorites, actionsHistory, unreadActionsCount } = get();
         
         // Проверяем, не добавлен ли уже
         if (favorites.some(f => f.id === track.id)) {
@@ -80,6 +85,7 @@ export const useFavoritesStore = create<FavoritesState>()(
         set({ 
           favorites: [favoriteTrack, ...favorites],
           actionsHistory: [action, ...actionsHistory].slice(0, 100), // Храним последние 100 действий
+          unreadActionsCount: unreadActionsCount + 1, // Увеличиваем счетчик непрочитанных
         });
         
         // Синхронизируем с сервером если есть userId
@@ -97,7 +103,7 @@ export const useFavoritesStore = create<FavoritesState>()(
       },
       
       removeFromFavorites: async (trackId) => {
-        const { userId, favorites, actionsHistory } = get();
+        const { userId, favorites, actionsHistory, unreadActionsCount } = get();
         
         // Находим трек для истории
         const track = favorites.find(f => f.id === trackId);
@@ -109,7 +115,10 @@ export const useFavoritesStore = create<FavoritesState>()(
             track,
             timestamp: new Date(),
           };
-          set({ actionsHistory: [action, ...actionsHistory].slice(0, 100) });
+          set({ 
+            actionsHistory: [action, ...actionsHistory].slice(0, 100),
+            unreadActionsCount: unreadActionsCount + 1, // Увеличиваем счетчик непрочитанных
+          });
         }
         
         // Удаляем локально
@@ -207,7 +216,11 @@ export const useFavoritesStore = create<FavoritesState>()(
       },
       
       clearActionsHistory: () => {
-        set({ actionsHistory: [] });
+        set({ actionsHistory: [], unreadActionsCount: 0 });
+      },
+      
+      markHistoryAsRead: () => {
+        set({ unreadActionsCount: 0 });
       },
     }),
     {
@@ -215,6 +228,7 @@ export const useFavoritesStore = create<FavoritesState>()(
       partialize: (state) => ({
         favorites: state.favorites,
         actionsHistory: state.actionsHistory,
+        unreadActionsCount: state.unreadActionsCount,
         userId: state.userId,
         isInitialized: state.isInitialized,
       }),

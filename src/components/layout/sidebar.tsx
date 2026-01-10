@@ -23,6 +23,7 @@ import {
   X,
   User,
 } from 'lucide-react';
+import { Tooltip } from '@/components/ui/tooltip';
 
 const mainNavItems = [
   { href: '/', label: 'Главная', icon: Home },
@@ -190,9 +191,10 @@ export function Sidebar({ className }: SidebarProps) {
                 logout();
               }}
               className="p-2 lg:p-2.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg lg:rounded-xl transition-all duration-200 active:scale-95"
-              title="Выйти"
             >
-              <LogOut className="w-4 h-4 text-gray-500" />
+              <Tooltip content="Выйти из аккаунта" position="left">
+                <LogOut className="w-4 h-4 text-gray-500" />
+              </Tooltip>
             </button>
           </div>
         ) : (

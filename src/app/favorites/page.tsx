@@ -10,6 +10,7 @@ import { useAuthStore } from '@/store/auth';
 import { useHistoryStore } from '@/store/history';
 import { useFavoritesStore } from '@/store/favorites';
 import { TrackItem } from '@/components/track/track-item';
+import { Tooltip } from '@/components/ui/tooltip';
 import { vkApiService } from '@/services/vk';
 import { usePlayerStore } from '@/store/player';
 import { MainLayout } from '@/components/layout';
@@ -42,8 +43,10 @@ export default function FavoritesPage() {
   const { 
     favorites, 
     actionsHistory,
+    unreadActionsCount,
     isInitialized,
     bulkAddToFavorites,
+    markHistoryAsRead,
     isLoading: storeLoading 
   } = useFavoritesStore();
   
@@ -202,28 +205,33 @@ export default function FavoritesPage() {
           {/* Play buttons */}
           {favorites.length > 0 && (
             <div className="relative z-10 flex gap-3 mt-6 justify-center sm:justify-start">
-              <button 
-                onClick={handlePlayAll}
-                className="px-6 md:px-8 py-3 md:py-4 bg-white text-black rounded-full font-semibold shadow-lg hover:scale-105 transition-transform flex items-center gap-2 text-sm md:text-base"
-              >
-                <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" />
-                Слушать
-              </button>
-              <button 
-                onClick={handleShuffle}
-                className="px-5 md:px-6 py-3 md:py-4 bg-white/20 backdrop-blur-sm text-white rounded-full font-semibold hover:bg-white/30 transition-colors flex items-center gap-2 text-sm md:text-base"
-              >
-                <Shuffle className="w-4 h-4 md:w-5 md:h-5" />
-                Перемешать
-              </button>
-              <button 
-                onClick={handleRefresh}
-                disabled={isLoading}
-                className="p-3 md:p-4 bg-white/20 backdrop-blur-sm text-white rounded-full hover:bg-white/30 transition-colors disabled:opacity-50"
-                title="Обновить"
-              >
-                <RefreshCw className={`w-4 h-4 md:w-5 md:h-5 ${isLoading ? 'animate-spin' : ''}`} />
-              </button>
+              <Tooltip content="Воспроизвести все треки" position="bottom">
+                <button 
+                  onClick={handlePlayAll}
+                  className="px-6 md:px-8 py-3 md:py-4 bg-white text-black rounded-full font-semibold shadow-lg hover:scale-105 transition-transform flex items-center gap-2 text-sm md:text-base"
+                >
+                  <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" />
+                  Слушать
+                </button>
+              </Tooltip>
+              <Tooltip content="Перемешать и воспроизвести" position="bottom">
+                <button 
+                  onClick={handleShuffle}
+                  className="px-5 md:px-6 py-3 md:py-4 bg-white/20 backdrop-blur-sm text-white rounded-full font-semibold hover:bg-white/30 transition-colors flex items-center gap-2 text-sm md:text-base"
+                >
+                  <Shuffle className="w-4 h-4 md:w-5 md:h-5" />
+                  Перемешать
+                </button>
+              </Tooltip>
+              <Tooltip content="Обновить список" position="bottom">
+                <button 
+                  onClick={handleRefresh}
+                  disabled={isLoading}
+                  className="p-3 md:p-4 bg-white/20 backdrop-blur-sm text-white rounded-full hover:bg-white/30 transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 md:w-5 md:h-5 ${isLoading ? 'animate-spin' : ''}`} />
+                </button>
+              </Tooltip>
             </div>
           )}
         </div>
@@ -247,67 +255,76 @@ export default function FavoritesPage() {
           </div>
         )}
 
-        {/* Tabs */}
+        {/* Search + Tabs в одной строке */}
         {hasAnyConnection && (
-          <div className="flex gap-2 mb-6 p-1.5 bg-gray-100 dark:bg-neutral-800 rounded-xl w-fit">
-            <button
-              onClick={() => setActiveTab('tracks')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm flex items-center gap-2 ${
-                activeTab === 'tracks'
-                  ? 'bg-white dark:bg-neutral-700 shadow-sm text-black dark:text-white'
-                  : 'text-gray-500 hover:text-black dark:hover:text-white'
-              }`}
-            >
-              <Heart className="w-4 h-4" />
-              Треки
-            </button>
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm flex items-center gap-2 ${
-                activeTab === 'history'
-                  ? 'bg-white dark:bg-neutral-700 shadow-sm text-black dark:text-white'
-                  : 'text-gray-500 hover:text-black dark:hover:text-white'
-              }`}
-            >
-              <History className="w-4 h-4" />
-              История
-              {actionsHistory.length > 0 && (
-                <span className="text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded-full">
-                  {actionsHistory.length}
-                </span>
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* Tracks Tab */}
-        {activeTab === 'tracks' && hasAnyConnection && (
-          <>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
             {/* Search */}
             {favorites.length > 0 && (
-              <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Поиск треков..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-12 pr-10 py-3 bg-gray-100 dark:bg-neutral-800 rounded-xl md:rounded-2xl text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all"
-                  />
-                  {searchQuery && (
+              <div className="relative flex-1 max-w-md w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Поиск треков..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-10 py-3 bg-gray-100 dark:bg-neutral-800 rounded-xl md:rounded-2xl text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all"
+                />
+                {searchQuery && (
+                  <Tooltip content="Очистить поиск">
                     <button
                       onClick={() => setSearchQuery('')}
                       className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors"
                     >
                       <X className="w-4 h-4 text-gray-400" />
                     </button>
-                  )}
-                </div>
+                  </Tooltip>
+                )}
               </div>
             )}
+            
+            {/* Tabs */}
+            <div className="flex gap-2 p-1.5 bg-gray-100 dark:bg-neutral-800 rounded-xl">
+              <Tooltip content="Все избранные треки">
+                <button
+                  onClick={() => setActiveTab('tracks')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all text-sm flex items-center gap-2 ${
+                    activeTab === 'tracks'
+                      ? 'bg-white dark:bg-neutral-700 shadow-sm text-black dark:text-white'
+                      : 'text-gray-500 hover:text-black dark:hover:text-white'
+                  }`}
+                >
+                  <Heart className="w-4 h-4" />
+                  Треки
+                </button>
+              </Tooltip>
+              <Tooltip content="История добавлений и удалений">
+                <button
+                  onClick={() => {
+                    setActiveTab('history');
+                    markHistoryAsRead(); // Отмечаем как прочитанное при переходе
+                  }}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all text-sm flex items-center gap-2 ${
+                    activeTab === 'history'
+                      ? 'bg-white dark:bg-neutral-700 shadow-sm text-black dark:text-white'
+                      : 'text-gray-500 hover:text-black dark:hover:text-white'
+                  }`}
+                >
+                  <History className="w-4 h-4" />
+                  История
+                  {unreadActionsCount > 0 && (
+                    <span className="text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                      {unreadActionsCount > 99 ? '99+' : unreadActionsCount}
+                    </span>
+                  )}
+                </button>
+              </Tooltip>
+            </div>
+          </div>
+        )}
 
-            {/* Loading */}
+        {/* Tracks Tab */}
+        {activeTab === 'tracks' && hasAnyConnection && (
+          <>
             {isLoading && favorites.length === 0 && (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />

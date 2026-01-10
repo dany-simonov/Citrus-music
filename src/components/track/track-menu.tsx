@@ -23,6 +23,7 @@ import {
   Radio,
   Download
 } from 'lucide-react';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface TrackMenuProps {
   track: Track;
@@ -207,21 +208,23 @@ export function TrackMenu({
 
   return (
     <div className={cn('relative', className)} ref={menuRef}>
-      <button
-        ref={buttonRef}
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsOpen(!isOpen);
-        }}
-        className={cn(
-          'p-2 rounded-xl',
-          'hover:bg-black/5 dark:hover:bg-white/10',
-          'transition-all duration-200',
-          isOpen && 'bg-black/5 dark:bg-white/10'
-        )}
-      >
-        <MoreHorizontal className="w-5 h-5" />
-      </button>
+      <Tooltip content="Ещё" disabled={isOpen}>
+        <button
+          ref={buttonRef}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsOpen(!isOpen);
+          }}
+          className={cn(
+            'p-2 rounded-xl',
+            'hover:bg-black/5 dark:hover:bg-white/10',
+            'transition-all duration-200',
+            isOpen && 'bg-black/5 dark:bg-white/10'
+          )}
+        >
+          <MoreHorizontal className="w-5 h-5" />
+        </button>
+      </Tooltip>
 
       {/* Dropdown Menu */}
       {isOpen && (

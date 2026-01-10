@@ -24,6 +24,7 @@ import {
   ListMusic,
   Heart,
 } from 'lucide-react';
+import { Tooltip } from '@/components/ui/tooltip';
 
 export function Player() {
   const {
@@ -147,81 +148,99 @@ export function Player() {
             <p className="font-semibold truncate text-sm md:text-base">{currentTrack.title}</p>
             <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 truncate">{currentTrack.artist}</p>
           </div>
-          <Button variant="icon" className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 text-gray-400 hover:text-red-500 hidden sm:flex">
-            <Heart className="w-4 h-4 md:w-5 md:h-5" />
-          </Button>
+          <Tooltip content="Добавить в избранное">
+            <Button variant="icon" className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 text-gray-400 hover:text-red-500 hidden sm:flex">
+              <Heart className="w-4 h-4 md:w-5 md:h-5" />
+            </Button>
+          </Tooltip>
         </div>
 
         {/* Контролы воспроизведения */}
         <div className="flex flex-col items-center gap-1 md:gap-3 md:w-2/4">
           <div className="flex items-center gap-1 md:gap-3">
-            <Button
-              variant="icon"
-              onClick={toggleShuffle}
-              className={cn(
-                'w-8 h-8 md:w-10 md:h-10 hidden sm:flex',
-                isShuffled && 'text-orange-500'
-              )}
-            >
-              <Shuffle className="w-4 h-4 md:w-5 md:h-5" />
-            </Button>
+            <Tooltip content={isShuffled ? 'Отключить перемешивание' : 'Включить перемешивание'}>
+              <Button
+                variant="icon"
+                onClick={toggleShuffle}
+                className={cn(
+                  'w-8 h-8 md:w-10 md:h-10 hidden sm:flex',
+                  isShuffled && 'text-orange-500'
+                )}
+              >
+                <Shuffle className="w-4 h-4 md:w-5 md:h-5" />
+              </Button>
+            </Tooltip>
 
-            <Button variant="icon" onClick={previous} className="w-10 h-10 md:w-12 md:h-12 hover:scale-105 transition-transform">
-              <SkipBack className="w-5 h-5 md:w-6 md:h-6" />
-            </Button>
+            <Tooltip content="Предыдущий трек">
+              <Button variant="icon" onClick={previous} className="w-10 h-10 md:w-12 md:h-12 hover:scale-105 transition-transform">
+                <SkipBack className="w-5 h-5 md:w-6 md:h-6" />
+              </Button>
+            </Tooltip>
 
-            <Button
-              variant="icon"
-              onClick={togglePlay}
-              disabled={isLoading_}
-              className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl shadow-orange-500/30 hover:shadow-orange-500/40 hover:scale-105 active:scale-95 transition-all"
-            >
-              {isLoading_ ? (
-                <svg
-                  className="animate-spin h-7 w-7"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-              ) : isPlaying ? (
-                <Pause className="w-6 h-6 md:w-7 md:h-7" />
-              ) : (
-                <Play className="w-6 h-6 md:w-7 md:h-7 ml-0.5 md:ml-1" />
-              )}
-            </Button>
+            <Tooltip content={isPlaying ? 'Пауза' : 'Воспроизвести'}>
+              <Button
+                variant="icon"
+                onClick={togglePlay}
+                disabled={isLoading_}
+                className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl shadow-orange-500/30 hover:shadow-orange-500/40 hover:scale-105 active:scale-95 transition-all"
+              >
+                {isLoading_ ? (
+                  <svg
+                    className="animate-spin h-7 w-7"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                ) : isPlaying ? (
+                  <Pause className="w-6 h-6 md:w-7 md:h-7" />
+                ) : (
+                  <Play className="w-6 h-6 md:w-7 md:h-7 ml-0.5 md:ml-1" />
+                )}
+              </Button>
+            </Tooltip>
 
-            <Button variant="icon" onClick={next} className="w-10 h-10 md:w-12 md:h-12 hover:scale-105 transition-transform">
-              <SkipForward className="w-5 h-5 md:w-6 md:h-6" />
-            </Button>
+            <Tooltip content="Следующий трек">
+              <Button variant="icon" onClick={next} className="w-10 h-10 md:w-12 md:h-12 hover:scale-105 transition-transform">
+                <SkipForward className="w-5 h-5 md:w-6 md:h-6" />
+              </Button>
+            </Tooltip>
 
-            <Button
-              variant="icon"
-              onClick={toggleRepeat}
-              className={cn(
-                'w-8 h-8 md:w-10 md:h-10 hidden sm:flex',
-                repeatMode !== RepeatMode.OFF && 'text-orange-500'
-              )}
-            >
-              {repeatMode === RepeatMode.ONE ? (
-                <Repeat1 className="w-4 h-4 md:w-5 md:h-5" />
-              ) : (
-                <Repeat className="w-4 h-4 md:w-5 md:h-5" />
-              )}
-            </Button>
+            <Tooltip content={
+              repeatMode === RepeatMode.OFF 
+                ? 'Повторять всё' 
+                : repeatMode === RepeatMode.ALL 
+                  ? 'Повторять один' 
+                  : 'Отключить повтор'
+            }>
+              <Button
+                variant="icon"
+                onClick={toggleRepeat}
+                className={cn(
+                  'w-8 h-8 md:w-10 md:h-10 hidden sm:flex',
+                  repeatMode !== RepeatMode.OFF && 'text-orange-500'
+                )}
+              >
+                {repeatMode === RepeatMode.ONE ? (
+                  <Repeat1 className="w-4 h-4 md:w-5 md:h-5" />
+                ) : (
+                  <Repeat className="w-4 h-4 md:w-5 md:h-5" />
+                )}
+              </Button>
+            </Tooltip>
           </div>
 
           {/* Время */}
@@ -234,13 +253,15 @@ export function Player() {
 
         {/* Громкость */}
         <div className="hidden md:flex items-center gap-3 justify-end w-1/4">
-          <Button variant="icon" onClick={toggleMute} className="w-10 h-10">
-            {isMuted || volume === 0 ? (
-              <VolumeX className="w-5 h-5" />
-            ) : (
-              <Volume2 className="w-5 h-5" />
-            )}
-          </Button>
+          <Tooltip content={isMuted || volume === 0 ? 'Включить звук' : 'Выключить звук'}>
+            <Button variant="icon" onClick={toggleMute} className="w-10 h-10">
+              {isMuted || volume === 0 ? (
+                <VolumeX className="w-5 h-5" />
+              ) : (
+                <Volume2 className="w-5 h-5" />
+              )}
+            </Button>
+          </Tooltip>
           <div className="w-28 relative group">
             <input
               type="range"

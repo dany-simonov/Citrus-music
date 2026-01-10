@@ -17,6 +17,7 @@ import { Play, Pause, Heart, ListMusic } from 'lucide-react';
 import { TrackMenu } from './track-menu';
 import { SafeImage } from '@/components/ui/safe-image';
 import { AddToPlaylistModal } from '@/components/modals/add-to-playlist-modal';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface TrackItemProps {
   track: Track;
@@ -224,23 +225,25 @@ export const TrackItem = memo(function TrackItem({
       </div>
 
       {/* Лайк */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleLike();
-        }}
-        className={cn(
-          'p-1.5 md:p-2 rounded-lg md:rounded-xl',
-          'hover:bg-black/5 dark:hover:bg-white/10',
-          'transition-all duration-200',
-          isLiked 
-            ? 'text-red-500 opacity-100' 
-            : 'text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100',
-          'hidden sm:block'
-        )}
-      >
-        <Heart className={cn('w-4 h-4', isLiked && 'fill-current')} />
-      </button>
+      <Tooltip content={isLiked ? 'Удалить из избранного' : 'Добавить в избранное'}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleLike();
+          }}
+          className={cn(
+            'p-1.5 md:p-2 rounded-lg md:rounded-xl',
+            'hover:bg-black/5 dark:hover:bg-white/10',
+            'transition-all duration-200',
+            isLiked 
+              ? 'text-red-500 opacity-100' 
+              : 'text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100',
+            'hidden sm:block'
+          )}
+        >
+          <Heart className={cn('w-4 h-4', isLiked && 'fill-current')} />
+        </button>
+      </Tooltip>
 
       {/* Меню */}
       <TrackMenu 
