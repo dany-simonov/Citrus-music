@@ -23,8 +23,11 @@ import {
   Shuffle,
   ListMusic,
   Heart,
+  FileText,
+  X,
 } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
+import { ExpandedPlayer } from './expanded-player';
 
 export function Player() {
   const {
@@ -36,6 +39,7 @@ export function Player() {
     isMuted,
     repeatMode,
     isShuffled,
+    isExpanded,
     togglePlay,
     next,
     previous,
@@ -44,6 +48,8 @@ export function Player() {
     toggleMute,
     toggleRepeat,
     toggleShuffle,
+    toggleExpanded,
+    close,
   } = usePlayerStore();
   
   const { getCover, setCover, isLoading, setLoading } = useCoversStore();
@@ -106,56 +112,61 @@ export function Player() {
   const isLoading_ = playerState === PlayerState.LOADING;
 
   return (
-    <div className="player-container">
-      {/* Прогресс-бар вверху */}
-      <div className="w-full h-1 bg-gray-200/50 dark:bg-neutral-800 relative group">
-        <input
-          type="range"
-          min="0"
-          max={duration || 100}
-          value={progress}
-          onChange={handleProgressChange}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-        />
-        <div
-          className="h-full bg-gradient-to-r from-orange-500 to-orange-600 rounded-full transition-all duration-100"
-          style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }}
-        />
-        {/* Hover indicator */}
-        <div 
-          className="absolute top-1/2 -translate-y-1/2 h-3 w-3 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ left: `calc(${duration ? (progress / duration) * 100 : 0}% - 6px)` }} 
-        />
-      </div>
-
-      <div className="h-20 md:h-24 px-3 md:px-6 flex items-center justify-between gap-2 md:gap-4">
-        {/* Информация о треке */}
-        <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1 md:w-1/4 md:flex-none">
-          <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl overflow-hidden bg-gray-100 dark:bg-neutral-800 flex-shrink-0 shadow-lg">
-            {coverUrl ? (
-              <img
-                src={coverUrl}
-                alt={currentTrack.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <ListMusic className="w-5 h-5 md:w-7 md:h-7 text-gray-400" />
-              </div>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold truncate text-sm md:text-base">{currentTrack.title}</p>
-            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 truncate">{currentTrack.artist}</p>
-          </div>
-          <Tooltip content="Добавить в избранное">
-            <Button variant="icon" className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 text-gray-400 hover:text-red-500 hidden sm:flex">
-              <Heart className="w-4 h-4 md:w-5 md:h-5" />
-            </Button>
-          </Tooltip>
+    <>
+      {/* Полноэкранный плеер с текстом - отдельный от мини-плеера */}
+      <ExpandedPlayer />
+      
+      {/* Обычный мини-плеер внизу */}
+      <div className="player-container">
+        {/* Прогресс-бар вверху */}
+        <div className="w-full h-1 bg-gray-200/50 dark:bg-neutral-800 relative group">
+          <input
+            type="range"
+            min="0"
+            max={duration || 100}
+            value={progress}
+            onChange={handleProgressChange}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+          />
+          <div
+            className="h-full bg-gradient-to-r from-orange-500 to-orange-600 rounded-full transition-all duration-100"
+            style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }}
+          />
+          {/* Hover indicator */}
+          <div 
+            className="absolute top-1/2 -translate-y-1/2 h-3 w-3 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ left: `calc(${duration ? (progress / duration) * 100 : 0}% - 6px)` }} 
+          />
         </div>
 
-        {/* Контролы воспроизведения */}
+        <div className="h-20 md:h-24 px-3 md:px-6 flex items-center justify-between gap-2 md:gap-4">
+          {/* Информация о треке */}
+          <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1 md:w-1/4 md:flex-none">
+            <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl overflow-hidden bg-gray-100 dark:bg-neutral-800 flex-shrink-0 shadow-lg">
+              {coverUrl ? (
+                <img
+                  src={coverUrl}
+                  alt={currentTrack.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <ListMusic className="w-5 h-5 md:w-7 md:h-7 text-gray-400" />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold truncate text-sm md:text-base">{currentTrack.title}</p>
+              <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 truncate">{currentTrack.artist}</p>
+            </div>
+            <Tooltip content="Добавить в избранное">
+              <Button variant="icon" className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 text-gray-400 hover:text-red-500 hidden sm:flex">
+                <Heart className="w-4 h-4 md:w-5 md:h-5" />
+              </Button>
+            </Tooltip>
+          </div>
+
+          {/* Контролы воспроизведения */}
         <div className="flex flex-col items-center gap-1 md:gap-3 md:w-2/4">
           <div className="flex items-center gap-1 md:gap-3">
             <Tooltip content={isShuffled ? 'Отключить перемешивание' : 'Включить перемешивание'}>
@@ -251,8 +262,18 @@ export function Player() {
           </div>
         </div>
 
-        {/* Громкость */}
+        {/* Громкость и доп. кнопки */}
         <div className="hidden md:flex items-center gap-3 justify-end w-1/4">
+          <Tooltip content="Показать текст">
+            <Button 
+              variant="icon" 
+              onClick={toggleExpanded}
+              className="w-10 h-10 text-gray-400 hover:text-orange-500"
+            >
+              <FileText className="w-5 h-5" />
+            </Button>
+          </Tooltip>
+          
           <Tooltip content={isMuted || volume === 0 ? 'Включить звук' : 'Выключить звук'}>
             <Button variant="icon" onClick={toggleMute} className="w-10 h-10">
               {isMuted || volume === 0 ? (
@@ -273,8 +294,19 @@ export function Player() {
               className="w-full"
             />
           </div>
+          
+          <Tooltip content="Закрыть">
+            <Button 
+              variant="icon" 
+              onClick={close}
+              className="w-10 h-10 text-gray-400 hover:text-red-500"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </Tooltip>
         </div>
       </div>
     </div>
+    </>
   );
 }

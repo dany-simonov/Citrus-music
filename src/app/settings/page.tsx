@@ -21,11 +21,7 @@ import {
   Music,
   User,
   LogOut,
-  Moon,
-  Sun,
-  Volume2,
   Bell,
-  Download,
   Shield,
   HelpCircle,
   Info
@@ -47,10 +43,7 @@ export default function SettingsPage() {
   const [showToken, setShowToken] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const [audioQuality, setAudioQuality] = useState<'auto' | 'high' | 'medium' | 'low'>('auto');
   const [notifications, setNotifications] = useState(true);
-  const [autoDownload, setAutoDownload] = useState(false);
 
   useEffect(() => {
     if (vkTokens?.accessToken) {
@@ -132,87 +125,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Appearance Section */}
-        <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 mb-6 border border-gray-200 dark:border-neutral-800">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <Sun className="w-5 h-5" />
-            Внешний вид
-          </h2>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl">
-              <div className="flex items-center gap-3">
-                {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-                <div>
-                  <p className="font-medium">Тёмная тема</p>
-                  <p className="text-sm text-gray-500">Включить тёмное оформление</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className={`w-14 h-8 rounded-full transition-colors ${
-                  isDarkMode ? 'bg-orange-500' : 'bg-gray-300'
-                }`}
-              >
-                <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform mx-1 ${
-                  isDarkMode ? 'translate-x-6' : 'translate-x-0'
-                }`} />
-              </button>
-            </div>
-          </div>
-        </div>
 
-        {/* Audio Section */}
-        <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 mb-6 border border-gray-200 dark:border-neutral-800">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <Volume2 className="w-5 h-5" />
-            Звук
-          </h2>
-          
-          <div className="space-y-4">
-            <div className="p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl">
-              <p className="font-medium mb-3">Качество аудио</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {(['auto', 'high', 'medium', 'low'] as const).map((quality) => (
-                  <button
-                    key={quality}
-                    onClick={() => setAudioQuality(quality)}
-                    className={`px-4 py-2 rounded-xl font-medium transition-colors ${
-                      audioQuality === quality
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-gray-200 dark:bg-neutral-700 hover:bg-gray-300 dark:hover:bg-neutral-600'
-                    }`}
-                  >
-                    {quality === 'auto' && 'Авто'}
-                    {quality === 'high' && 'Высокое'}
-                    {quality === 'medium' && 'Среднее'}
-                    {quality === 'low' && 'Низкое'}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl">
-              <div className="flex items-center gap-3">
-                <Download className="w-5 h-5" />
-                <div>
-                  <p className="font-medium">Автозагрузка</p>
-                  <p className="text-sm text-gray-500">Загружать треки для офлайн</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setAutoDownload(!autoDownload)}
-                className={`w-14 h-8 rounded-full transition-colors ${
-                  autoDownload ? 'bg-orange-500' : 'bg-gray-300'
-                }`}
-              >
-                <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform mx-1 ${
-                  autoDownload ? 'translate-x-6' : 'translate-x-0'
-                }`} />
-              </button>
-            </div>
-          </div>
-        </div>
 
         {/* Notifications Section */}
         <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 mb-6 border border-gray-200 dark:border-neutral-800">

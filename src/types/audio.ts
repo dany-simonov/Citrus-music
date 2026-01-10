@@ -21,6 +21,7 @@ export interface Track {
   isExplicit?: boolean;
   isAvailable: boolean;
   addedAt?: Date;
+  lyricsId?: number; // ID текста песни (для VK)
 }
 
 /**

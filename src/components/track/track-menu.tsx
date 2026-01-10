@@ -5,7 +5,8 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Track } from '@/types/audio';
 import { cn } from '@/lib/utils';
 import { 
@@ -21,7 +22,9 @@ import {
   Edit3,
   Share2,
   Radio,
-  Download
+  Download,
+  ChevronRight,
+  User
 } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
 
@@ -38,6 +41,18 @@ interface TrackMenuProps {
   className?: string;
 }
 
+/**
+ * Парсит строку исполнителей и возвращает массив имён
+ */
+function parseArtists(artistString: string): string[] {
+  // Разделители: запятая, &, feat., ft., featuring, x (но не внутри слов)
+  const separators = /\s*[,&]\s*|\s+feat\.?\s+|\s+ft\.?\s+|\s+featuring\s+|\s+x\s+/i;
+  const artists = artistString.split(separators).map(a => a.trim()).filter(a => a.length > 0);
+  
+  // Убираем дубликаты
+  return Array.from(new Set(artists));
+}
+
 export function TrackMenu({
   track,
   onPlay,
@@ -50,10 +65,15 @@ export function TrackMenu({
   isLiked = false,
   className,
 }: TrackMenuProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [showArtistSubmenu, setShowArtistSubmenu] = useState(false);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  
+  // Парсим исполнителей
+  const artists = useMemo(() => parseArtists(track.artist), [track.artist]);
 
   // Закрытие меню при клике вне
   useEffect(() => {
@@ -178,7 +198,13 @@ export function TrackMenu({
       label: 'Похожие треки',
       icon: Radio,
       onClick: () => {
-        onShowSimilar?.();
+        // Переход на страницу похожих треков
+        const params = new URLSearchParams({
+          title: track.title,
+          artist: track.artist,
+          ...(track.coverUrl && { cover: track.coverUrl }),
+        });
+        router.push(`/similar?${params.toString()}`);
         setIsOpen(false);
       },
     },
@@ -186,9 +212,16 @@ export function TrackMenu({
       id: 'artist',
       label: 'Перейти к исполнителю',
       icon: Music2,
+      hasSubmenu: artists.length > 1,
       onClick: () => {
-        // TODO: Navigate to artist page
-        setIsOpen(false);
+        if (artists.length === 1) {
+          // Если один исполнитель - сразу переходим
+          router.push(`/search?q=${encodeURIComponent(artists[0])}&auto=1`);
+          setIsOpen(false);
+        } else {
+          // Если несколько - показываем подменю
+          setShowArtistSubmenu(!showArtistSubmenu);
+        }
       },
     },
     ...(onRemove ? [
@@ -258,23 +291,60 @@ export function TrackMenu({
             
             const Icon = item.icon;
             const isHeartActive = item.id === 'like' && 'active' in item && item.active;
+            const hasSubmenu = 'hasSubmenu' in item && item.hasSubmenu;
             
             return (
-              <button
-                key={item.id}
-                onClick={item.onClick}
-                className={cn(
-                  'w-full flex items-center gap-3 px-4 py-2.5 text-left',
-                  'hover:bg-gray-50 dark:hover:bg-neutral-700/50',
-                  'transition-colors duration-150',
-                  'danger' in item && item.danger && 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20',
-                  'success' in item && item.success && 'text-green-500',
-                  'active' in item && item.active && 'text-red-500'
+              <div key={item.id} className="relative">
+                <button
+                  onClick={item.onClick}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-2.5 text-left',
+                    'hover:bg-gray-50 dark:hover:bg-neutral-700/50',
+                    'transition-colors duration-150',
+                    'danger' in item && item.danger && 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20',
+                    'success' in item && item.success && 'text-green-500',
+                    'active' in item && item.active && 'text-red-500'
+                  )}
+                >
+                  <Icon className={cn('w-4 h-4 flex-shrink-0', isHeartActive && 'fill-current')} />
+                  <span className="text-sm font-medium flex-1">{item.label}</span>
+                  {hasSubmenu && <ChevronRight className="w-4 h-4 text-gray-400" />}
+                </button>
+                
+                {/* Подменю для выбора исполнителя */}
+                {item.id === 'artist' && showArtistSubmenu && artists.length > 1 && (
+                  <div className={cn(
+                    'absolute right-full top-0 mr-1 z-50',
+                    'min-w-[180px] py-2',
+                    'bg-white dark:bg-neutral-800',
+                    'rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/30',
+                    'border border-gray-200/50 dark:border-neutral-700/50',
+                    'animate-scale-in origin-top-right'
+                  )}>
+                    <div className="px-4 py-2 border-b border-gray-100 dark:border-neutral-700 mb-2">
+                      <p className="text-xs text-gray-500">Выберите исполнителя</p>
+                    </div>
+                    {artists.map((artist, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          router.push(`/search?q=${encodeURIComponent(artist)}&auto=1`);
+                          setIsOpen(false);
+                          setShowArtistSubmenu(false);
+                        }}
+                        className={cn(
+                          'w-full flex items-center gap-3 px-4 py-2.5 text-left',
+                          'hover:bg-gray-50 dark:hover:bg-neutral-700/50',
+                          'transition-colors duration-150'
+                        )}
+                      >
+                        <User className="w-4 h-4 flex-shrink-0 text-gray-400" />
+                        <span className="text-sm font-medium truncate">{artist}</span>
+                      </button>
+                    ))}
+                  </div>
                 )}
-              >
-                <Icon className={cn('w-4 h-4 flex-shrink-0', isHeartActive && 'fill-current')} />
-                <span className="text-sm font-medium">{item.label}</span>
-              </button>
+              </div>
             );
           })}
         </div>

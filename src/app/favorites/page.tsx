@@ -47,7 +47,8 @@ export default function FavoritesPage() {
     isInitialized,
     bulkAddToFavorites,
     markHistoryAsRead,
-    isLoading: storeLoading 
+    isLoading: storeLoading,
+    setInitialized,
   } = useFavoritesStore();
   
   const [activeTab, setActiveTab] = useState<TabType>('tracks');
@@ -56,86 +57,103 @@ export default function FavoritesPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const isLoadingRef = useRef(false);
+  const [forceRefresh, setForceRefresh] = useState(0);
 
   const isVKConnected = !!vkTokens?.accessToken;
   const isYandexConnected = !!yandexTokens?.accessToken;
   const hasAnyConnection = isVKConnected || isYandexConnected;
-
-  // Загружаем VK треки при первом входе (если store ещё не инициализирован)
-  useEffect(() => {
-    const loadVKTracks = async () => {
-      if (!isVKConnected || isLoadingRef.current || isInitialized) return;
-      isLoadingRef.current = true;
+  
+  // Функция загрузки VK треков
+  const loadVKTracks = useCallback(async (force: boolean = false) => {
+    if (!isVKConnected || isLoadingRef.current) return;
+    if (!force && isInitialized && favorites.length > 0) return;
+    
+    isLoadingRef.current = true;
+    setIsLoadingVK(true);
+    setError(null);
+    
+    // При принудительной загрузке сбрасываем инициализацию
+    if (force) {
+      setInitialized(false);
+    }
+    
+    try {
+      const allTracks: Track[] = [];
       
-      setIsLoadingVK(true);
-      setError(null);
+      // Первый запрос
+      const firstResponse = await vkApiService.getAudio({ count: 100, offset: 0 });
+      setVkLoadProgress({ loaded: firstResponse.items.length, total: firstResponse.count });
       
-      try {
-        const allTracks: Track[] = [];
-        
-        // Первый запрос
-        const firstResponse = await vkApiService.getAudio({ count: 100, offset: 0 });
-        setVkLoadProgress({ loaded: firstResponse.items.length, total: firstResponse.count });
-        
-        firstResponse.items.forEach((item) => {
-          allTracks.push({
-            id: `vk_${item.id}`,
-            title: item.title,
-            artist: item.artist,
-            duration: item.duration,
-            coverUrl: getVKAudioCover(item),
-            audioUrl: item.url,
-            source: MusicSource.VK,
-            isAvailable: !!item.url,
-          });
+      firstResponse.items.forEach((item) => {
+        allTracks.push({
+          id: `vk_${item.owner_id}_${item.id}`,
+          title: item.title,
+          artist: item.artist,
+          duration: item.duration,
+          coverUrl: getVKAudioCover(item),
+          audioUrl: item.url,
+          source: MusicSource.VK,
+          isAvailable: !!item.url,
+          lyricsId: item.lyrics_id,
         });
+      });
+      
+      // Если принудительная загрузка - очищаем и добавляем заново
+      if (force) {
+        useFavoritesStore.setState({ favorites: [] });
+      }
+      
+      // Сразу добавляем первую порцию
+      bulkAddToFavorites(allTracks);
+      
+      // Загружаем остальные
+      if (firstResponse.count > 100) {
+        const totalPages = Math.ceil(firstResponse.count / 100);
         
-        // Сразу добавляем первую порцию
-        bulkAddToFavorites(allTracks);
-        
-        // Загружаем остальные
-        if (firstResponse.count > 100) {
-          const totalPages = Math.ceil(firstResponse.count / 100);
-          
-          for (let page = 1; page < totalPages; page++) {
-            try {
-              const response = await vkApiService.getAudio({ 
-                count: 100, 
-                offset: page * 100 
-              });
-              
-              const pageTracks: Track[] = response.items.map((item) => ({
-                id: `vk_${item.id}`,
-                title: item.title,
-                artist: item.artist,
-                duration: item.duration,
-                coverUrl: getVKAudioCover(item),
-                audioUrl: item.url,
-                source: MusicSource.VK,
-                isAvailable: !!item.url,
-              }));
-              
-              allTracks.push(...pageTracks);
-              bulkAddToFavorites(pageTracks);
-              setVkLoadProgress({ loaded: allTracks.length, total: firstResponse.count });
-              
-              await new Promise(resolve => setTimeout(resolve, 300));
-            } catch (err) {
-              console.error(`Error loading page ${page}:`, err);
-            }
+        for (let page = 1; page < totalPages; page++) {
+          try {
+            const response = await vkApiService.getAudio({ 
+              count: 100, 
+              offset: page * 100 
+            });
+            
+            const pageTracks: Track[] = response.items.map((item) => ({
+              id: `vk_${item.owner_id}_${item.id}`,
+              title: item.title,
+              artist: item.artist,
+              duration: item.duration,
+              coverUrl: getVKAudioCover(item),
+              audioUrl: item.url,
+              source: MusicSource.VK,
+              isAvailable: !!item.url,
+              lyricsId: item.lyrics_id,
+            }));
+            
+            allTracks.push(...pageTracks);
+            bulkAddToFavorites(pageTracks);
+            setVkLoadProgress({ loaded: allTracks.length, total: firstResponse.count });
+            
+            await new Promise(resolve => setTimeout(resolve, 300));
+          } catch (err) {
+            console.error(`Error loading page ${page}:`, err);
           }
         }
-        
-        setIsLoadingVK(false);
-      } catch (err) {
-        console.error('Failed to load VK audio:', err);
-        setError(err instanceof Error ? err.message : 'Ошибка загрузки треков');
-        setIsLoadingVK(false);
       }
-    };
-    
-    loadVKTracks();
-  }, [isVKConnected, isInitialized, bulkAddToFavorites]);
+      
+      setIsLoadingVK(false);
+      isLoadingRef.current = false;
+    } catch (err) {
+      console.error('Failed to load VK audio:', err);
+      setError(err instanceof Error ? err.message : 'Ошибка загрузки треков');
+      setIsLoadingVK(false);
+      isLoadingRef.current = false;
+    }
+  }, [isVKConnected, isInitialized, favorites.length, bulkAddToFavorites, setInitialized]);
+
+  // Загружаем VK треки при первом входе
+  useEffect(() => {
+    loadVKTracks(false);
+  }, [loadVKTracks, forceRefresh]);
 
   // Фильтрация
   const filteredFavorites = useMemo(() => {
@@ -169,14 +187,14 @@ export default function FavoritesPage() {
   }, [filteredFavorites, playPlaylist, addToHistory]);
 
   const handleRefresh = useCallback(() => {
-    window.location.reload();
-  }, []);
+    loadVKTracks(true);
+  }, [loadVKTracks]);
 
   const isLoading = isLoadingVK || storeLoading;
 
   return (
     <MainLayout>
-      <div className="p-4 md:p-8 pb-32">
+      <div className="p-4 md:p-8 pb-32 overflow-x-hidden">
         {/* Header with gradient */}
         <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-pink-500 via-red-500 to-orange-500 p-6 md:p-8 mb-6 md:mb-8 overflow-hidden">
           <div className="absolute inset-0 opacity-20">

@@ -38,6 +38,7 @@ interface FavoritesState {
   // Массовое добавление (для VK)
   bulkAddToFavorites: (tracks: Track[]) => void;
   setInitialized: (value: boolean) => void;
+  clearFavorites: () => void;
   clearActionsHistory: () => void;
   
   // Отметить историю как прочитанную
@@ -213,6 +214,10 @@ export const useFavoritesStore = create<FavoritesState>()(
       
       setInitialized: (value) => {
         set({ isInitialized: value });
+      },
+      
+      clearFavorites: () => {
+        set({ favorites: [], isInitialized: false });
       },
       
       clearActionsHistory: () => {

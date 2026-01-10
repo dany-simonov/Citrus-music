@@ -19,6 +19,7 @@ interface PlayerStore {
   isMuted: boolean;
   repeatMode: RepeatMode;
   isShuffled: boolean;
+  isExpanded: boolean; // развёрнутый режим с текстом
   
   // Очередь воспроизведения
   queue: QueueItem[];
@@ -34,6 +35,8 @@ interface PlayerStore {
   toggleMute: () => void;
   toggleRepeat: () => void;
   toggleShuffle: () => void;
+  toggleExpanded: () => void;
+  close: () => void; // закрыть текущий трек
   
   // Queue Actions
   addToQueue: (track: Track, source?: 'user' | 'autoplay' | 'playlist') => void;
@@ -78,6 +81,7 @@ export const usePlayerStore = create<PlayerStore>()(
       isMuted: false,
       repeatMode: RepeatMode.OFF,
       isShuffled: false,
+      isExpanded: false,
       queue: [],
       queueIndex: -1,
       originalQueue: [],
@@ -90,6 +94,22 @@ export const usePlayerStore = create<PlayerStore>()(
       setVolume: (volume) => set({ volume: Math.max(0, Math.min(1, volume)) }),
       
       toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+      
+      toggleExpanded: () => set((state) => ({ isExpanded: !state.isExpanded })),
+      
+      close: () => {
+        const audioManager = (window as unknown as { audioManager?: { pause: () => void } }).audioManager;
+        if (audioManager) {
+          audioManager.pause();
+        }
+        set({ 
+          currentTrack: null, 
+          playerState: PlayerState.IDLE, 
+          progress: 0, 
+          duration: 0,
+          isExpanded: false,
+        });
+      },
       
       toggleRepeat: () => set((state) => {
         const modes = [RepeatMode.OFF, RepeatMode.ALL, RepeatMode.ONE];

@@ -46,6 +46,7 @@ export function transformVKAudioToTrack(audio: VKAudio): Track {
     source: 'vk' as MusicSource,
     isAvailable: !!audio.url && audio.content_restricted !== 1,
     isExplicit: audio.is_explicit === 1,
+    lyricsId: audio.lyrics_id,
   };
 }
 

@@ -6,6 +6,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { MainLayout } from '@/components/layout';
 import { useAuthStore } from '@/store/auth';
 import { useVKSearch } from '@/hooks/use-vk-api';
@@ -55,6 +56,7 @@ const saveSearchHistory = (history: SearchHistoryItem[]) => {
 };
 
 export default function SearchPage() {
+  const searchParams = useSearchParams();
   const { isAuthenticated, vkUser, yandexUser } = useAuthStore();
   const { playPlaylist } = usePlayerStore();
   const { addToHistory } = useHistoryStore();
@@ -63,11 +65,31 @@ export default function SearchPage() {
   const [searchType, setSearchType] = useState<SearchType>('all');
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(true);
+  const [initialQueryProcessed, setInitialQueryProcessed] = useState(false);
 
   // Загружаем историю при монтировании
   useEffect(() => {
     setSearchHistory(loadSearchHistory());
   }, []);
+  
+  // Обрабатываем параметры URL (?q=...&auto=1)
+  useEffect(() => {
+    if (initialQueryProcessed) return;
+    
+    const queryFromUrl = searchParams.get('q');
+    const autoSearch = searchParams.get('auto') === '1';
+    
+    if (queryFromUrl) {
+      setSearchQuery(queryFromUrl);
+      if (autoSearch) {
+        // Сразу ищем по исполнителю
+        setDebouncedQuery(queryFromUrl);
+        setSearchType('artists'); // Ищем именно по исполнителю
+        setShowHistory(false);
+      }
+      setInitialQueryProcessed(true);
+    }
+  }, [searchParams, initialQueryProcessed]);
 
   // Поиск по VK с опцией performer_only для поиска по артисту
   // Поиск работает для авторизованных пользователей без необходимости vkUser
