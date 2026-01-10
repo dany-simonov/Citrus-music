@@ -9,11 +9,13 @@ import { useState, useEffect } from 'react';
 import { Track, PlayerState } from '@/types/audio';
 import { usePlayerStore } from '@/store/player';
 import { useHistoryStore } from '@/store/history';
+import { useFavoritesStore } from '@/store/favorites';
 import { useCoversStore, fetchDeezerCover } from '@/store/covers';
 import { cn, formatDuration } from '@/lib/utils';
 import { Play, Pause, Heart, ListMusic } from 'lucide-react';
 import { TrackMenu } from './track-menu';
 import { SafeImage } from '@/components/ui/safe-image';
+import { AddToPlaylistModal } from '@/components/modals/add-to-playlist-modal';
 
 interface TrackItemProps {
   track: Track;
@@ -36,9 +38,18 @@ export function TrackItem({
 }: TrackItemProps) {
   const { currentTrack, playerState, togglePlay, addToQueue, playPlaylist } = usePlayerStore();
   const { addToHistory } = useHistoryStore();
+  const { isFavorite, addToFavorites, removeFromFavorites, loadFavorites } = useFavoritesStore();
   const { getCover, setCover, isLoading, setLoading } = useCoversStore();
   
   const [coverUrl, setCoverUrl] = useState<string | undefined>(track.coverUrl);
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  
+  // Загружаем избранное при монтировании
+  useEffect(() => {
+    loadFavorites();
+  }, [loadFavorites]);
+  
+  const isLiked = isFavorite(track.id);
   
   // Ищем обложку если её нет
   useEffect(() => {
@@ -97,6 +108,18 @@ export function TrackItem({
 
   const handleAddToQueue = () => {
     addToQueue(track, 'user');
+  };
+
+  const handleLike = () => {
+    if (isLiked) {
+      removeFromFavorites(track.id);
+    } else {
+      addToFavorites(track);
+    }
+  };
+
+  const handleAddToPlaylist = () => {
+    setShowPlaylistModal(true);
   };
 
   return (
@@ -170,16 +193,19 @@ export function TrackItem({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          // TODO: Добавить в избранное
+          handleLike();
         }}
         className={cn(
-          'p-1.5 md:p-2 rounded-lg md:rounded-xl opacity-0 group-hover:opacity-100',
+          'p-1.5 md:p-2 rounded-lg md:rounded-xl',
           'hover:bg-black/5 dark:hover:bg-white/10',
-          'transition-all duration-200 text-gray-400 hover:text-red-500',
+          'transition-all duration-200',
+          isLiked 
+            ? 'text-red-500 opacity-100' 
+            : 'text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100',
           'hidden sm:block'
         )}
       >
-        <Heart className="w-4 h-4" />
+        <Heart className={cn('w-4 h-4', isLiked && 'fill-current')} />
       </button>
 
       {/* Меню */}
@@ -187,8 +213,18 @@ export function TrackItem({
         track={track}
         onPlay={handlePlay}
         onAddToQueue={handleAddToQueue}
+        onAddToPlaylist={handleAddToPlaylist}
+        onLike={handleLike}
+        isLiked={isLiked}
         onRemove={onRemove}
         className="opacity-0 group-hover:opacity-100 transition-opacity"
+      />
+
+      {/* Модальное окно добавления в плейлист */}
+      <AddToPlaylistModal
+        track={track}
+        isOpen={showPlaylistModal}
+        onClose={() => setShowPlaylistModal(false)}
       />
     </div>
   );

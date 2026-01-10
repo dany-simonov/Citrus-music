@@ -254,6 +254,7 @@ export function TrackMenu({
             if (!('icon' in item) || !item.icon) return null;
             
             const Icon = item.icon;
+            const isHeartActive = item.id === 'like' && 'active' in item && item.active;
             
             return (
               <button
@@ -265,10 +266,10 @@ export function TrackMenu({
                   'transition-colors duration-150',
                   'danger' in item && item.danger && 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20',
                   'success' in item && item.success && 'text-green-500',
-                  'active' in item && item.active && 'text-orange-500'
+                  'active' in item && item.active && 'text-red-500'
                 )}
               >
-                <Icon className="w-4 h-4 flex-shrink-0" />
+                <Icon className={cn('w-4 h-4 flex-shrink-0', isHeartActive && 'fill-current')} />
                 <span className="text-sm font-medium">{item.label}</span>
               </button>
             );
