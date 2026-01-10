@@ -1,11 +1,12 @@
 /**
  * Компонент элемента списка треков - Apple/Microsoft Style
+ * Оптимизированная версия с ленивой загрузкой обложек
  * @module components/track/track-item
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { Track, PlayerState } from '@/types/audio';
 import { usePlayerStore } from '@/store/player';
 import { useHistoryStore } from '@/store/history';
@@ -25,9 +26,12 @@ interface TrackItemProps {
   onRemove?: () => void;
   className?: string;
   compact?: boolean;
+  // Для виртуализации
+  style?: React.CSSProperties;
 }
 
-export function TrackItem({ 
+// Мемоизированный компонент для производительности
+export const TrackItem = memo(function TrackItem({ 
   track, 
   index, 
   showIndex = false, 
@@ -35,43 +39,75 @@ export function TrackItem({
   onRemove,
   className,
   compact = false,
+  style,
 }: TrackItemProps) {
   const { currentTrack, playerState, togglePlay, addToQueue, playPlaylist } = usePlayerStore();
   const { addToHistory } = useHistoryStore();
-  const { isFavorite, addToFavorites, removeFromFavorites, loadFavorites } = useFavoritesStore();
-  const { getCover, setCover, isLoading, setLoading } = useCoversStore();
+  const { isFavorite, addToFavorites, removeFromFavorites } = useFavoritesStore();
+  const { getCover, setCover, hasCover, isLoading, setLoading } = useCoversStore();
   
   const [coverUrl, setCoverUrl] = useState<string | undefined>(track.coverUrl);
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   
-  // НЕ загружаем избранное здесь - это делается один раз в providers
   const isLiked = isFavorite(track.id);
   
-  // Ищем обложку если её нет
+  // Intersection Observer для ленивой загрузки
   useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.unobserve(element); // Прекращаем наблюдение после первого появления
+          }
+        });
+      },
+      {
+        rootMargin: '100px', // Загружаем немного заранее
+        threshold: 0
+      }
+    );
+    
+    observer.observe(element);
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+  
+  // Загрузка обложки только когда элемент видим
+  useEffect(() => {
+    // Если уже есть обложка от VK - используем её
+    if (track.coverUrl) {
+      setCoverUrl(track.coverUrl);
+      return;
+    }
+    
+    // Проверяем кэш (включая "не найдено")
+    if (hasCover(track.id)) {
+      const cached = getCover(track.id);
+      if (cached) setCoverUrl(cached);
+      return;
+    }
+    
+    // Загружаем только если элемент видим
+    if (!isVisible) return;
+    
+    // Если уже загружаем, пропускаем
+    if (isLoading(track.id)) return;
+    
+    // Ищем через Deezer с throttling
     const fetchCover = async () => {
-      // Если уже есть обложка, ничего не делаем
-      if (track.coverUrl) {
-        setCoverUrl(track.coverUrl);
-        return;
-      }
-      
-      // Проверяем кэш
-      const cachedCover = getCover(track.id);
-      if (cachedCover) {
-        setCoverUrl(cachedCover);
-        return;
-      }
-      
-      // Если уже загружаем, пропускаем
-      if (isLoading(track.id)) return;
-      
-      // Ищем через Deezer
       setLoading(track.id, true);
       try {
         const deezerCover = await fetchDeezerCover(track.artist, track.title);
+        setCover(track.id, deezerCover); // Кэшируем даже null
         if (deezerCover) {
-          setCover(track.id, deezerCover);
           setCoverUrl(deezerCover);
         }
       } finally {
@@ -80,7 +116,7 @@ export function TrackItem({
     };
     
     fetchCover();
-  }, [track.id, track.coverUrl, track.artist, track.title, getCover, setCover, isLoading, setLoading]);
+  }, [track.id, track.coverUrl, track.artist, track.title, isVisible, getCover, hasCover, setCover, isLoading, setLoading]);
   
   const isCurrentTrack = currentTrack?.id === track.id;
   const isPlaying = isCurrentTrack && playerState === PlayerState.PLAYING;
@@ -120,7 +156,9 @@ export function TrackItem({
 
   return (
     <div
+      ref={containerRef}
       onClick={handleClick}
+      style={style}
       className={cn(
         'group flex items-center gap-3 md:gap-4 p-2 md:p-3 rounded-xl md:rounded-2xl cursor-pointer',
         'hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200',
@@ -224,4 +262,4 @@ export function TrackItem({
       />
     </div>
   );
-}
+});

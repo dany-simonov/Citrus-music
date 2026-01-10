@@ -1424,6 +1424,9 @@ video {
 .cursor-wait {
   cursor: wait;
 }
+.resize {
+  resize: both;
+}
 .list-inside {
   list-style-position: inside;
 }

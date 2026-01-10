@@ -1,5 +1,6 @@
 /**
  * Страница избранного - VK треки + система лайков
+ * Оптимизированная версия с виртуализацией
  * @module app/favorites/page
  */
 
@@ -9,7 +10,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { useHistoryStore } from '@/store/history';
 import { useFavoritesStore } from '@/store/favorites';
-import { TrackItem } from '@/components/track/track-item';
+import { VirtualizedTrackList } from '@/components/track/virtualized-track-list';
 import { vkApiService } from '@/services/vk';
 import { usePlayerStore } from '@/store/player';
 import { MainLayout } from '@/components/layout';
@@ -329,21 +330,15 @@ export default function FavoritesPage() {
               </div>
             )}
 
-            {/* Favorites list */}
+            {/* Favorites list - виртуализированный для производительности */}
             {!isLoading || favorites.length > 0 ? (
               <>
                 {filteredFavorites.length > 0 ? (
-                  <div className="space-y-0.5 md:space-y-1">
-                    {filteredFavorites.map((track, index) => (
-                      <TrackItem
-                        key={track.id}
-                        track={track}
-                        index={index}
-                        showIndex
-                        onClick={() => handleTrackClick(track, index)}
-                      />
-                    ))}
-                  </div>
+                  <VirtualizedTrackList
+                    tracks={filteredFavorites}
+                    showIndex
+                    onTrackClick={handleTrackClick}
+                  />
                 ) : searchQuery ? (
                   <div className="text-center py-12">
                     <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mx-auto mb-4">
