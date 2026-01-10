@@ -5,14 +5,14 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { MusicSource } from '@/types/audio';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
-export default function VKCallbackPage() {
+function VKCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { handleVKCallback, setVKUser } = useAuthStore();
@@ -57,7 +57,7 @@ export default function VKCallbackPage() {
               id: String(user.id),
               firstName: user.first_name,
               lastName: user.last_name,
-              photoUrl: user.photo_200,
+              avatarUrl: user.photo_200,
               source: MusicSource.VK,
             });
           }
@@ -140,5 +140,17 @@ export default function VKCallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function VKCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white dark:bg-[#0A0A0A] flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
+      </div>
+    }>
+      <VKCallbackContent />
+    </Suspense>
   );
 }

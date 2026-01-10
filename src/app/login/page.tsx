@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { vkAuthService } from '@/services/vk';
+import { MusicSource } from '@/types/audio';
 import { ArrowLeft, ExternalLink, Check, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -90,7 +91,8 @@ export default function LoginPage() {
           id: String(user.id),
           firstName: user.first_name,
           lastName: user.last_name,
-          photoUrl: user.photo_200,
+          avatarUrl: user.photo_200,
+          source: MusicSource.VK,
         });
       }
       

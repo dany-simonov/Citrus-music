@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { yandexApiService } from '@/services/yandex';
@@ -13,7 +13,7 @@ import { MusicSource } from '@/types/audio';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
-export default function YandexCallbackPage() {
+function YandexCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { handleYandexCallback, setYandexUser } = useAuthStore();
@@ -49,7 +49,7 @@ export default function YandexCallbackPage() {
             id: String(yandexUser.uid),
             firstName: yandexUser.name || yandexUser.displayName || yandexUser.login,
             lastName: '',
-            photoUrl: yandexUser.avatarUrl,
+            avatarUrl: yandexUser.avatarUrl,
             source: MusicSource.YANDEX,
           });
 
@@ -131,5 +131,17 @@ export default function YandexCallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function YandexCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white dark:bg-[#0A0A0A] flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
+      </div>
+    }>
+      <YandexCallbackContent />
+    </Suspense>
   );
 }

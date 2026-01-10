@@ -315,7 +315,7 @@ export default function PlaylistsPage() {
               {error}
             </p>
             <button
-              onClick={loadPlaylists}
+              onClick={loadAllPlaylists}
               className="px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl md:rounded-2xl font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all text-sm md:text-base flex items-center gap-2"
             >
               <RefreshCw className="w-5 h-5" />

@@ -1,5 +1,5 @@
 /**
- * Страница избранного с поиском и пагинацией
+ * Страница избранного - VK треки + система лайков
  * @module app/favorites/page
  */
 
@@ -8,13 +8,13 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { useHistoryStore } from '@/store/history';
+import { useFavoritesStore } from '@/store/favorites';
 import { TrackItem } from '@/components/track/track-item';
 import { vkApiService } from '@/services/vk';
 import { usePlayerStore } from '@/store/player';
 import { MainLayout } from '@/components/layout';
 import type { Track } from '@/types/audio';
 import { MusicSource } from '@/types/audio';
-import type { VKAudio } from '@/types/vk';
 import { getVKAudioCover } from '@/lib/cover-utils';
 import { 
   Heart, 
@@ -24,70 +24,74 @@ import {
   Shuffle,
   Search,
   X,
-  RefreshCw
+  RefreshCw,
+  History,
+  Plus,
+  Minus
 } from 'lucide-react';
 import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
+import { ru } from 'date-fns/locale';
 
-type SourceTab = 'all' | 'vk' | 'yandex';
+type TabType = 'tracks' | 'history';
 
 export default function FavoritesPage() {
   const { vkTokens, yandexTokens } = useAuthStore();
   const { playPlaylist } = usePlayerStore();
   const { addToHistory } = useHistoryStore();
-  const [activeSource, setActiveSource] = useState<SourceTab>('all');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [favorites, setFavorites] = useState<Track[]>([]);
+  const { 
+    favorites, 
+    actionsHistory,
+    isInitialized,
+    bulkAddToFavorites,
+    isLoading: storeLoading 
+  } = useFavoritesStore();
+  
+  const [activeTab, setActiveTab] = useState<TabType>('tracks');
+  const [isLoadingVK, setIsLoadingVK] = useState(false);
+  const [vkLoadProgress, setVkLoadProgress] = useState({ loaded: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [totalCount, setTotalCount] = useState(0);
   const isLoadingRef = useRef(false);
 
   const isVKConnected = !!vkTokens?.accessToken;
   const isYandexConnected = !!yandexTokens?.accessToken;
   const hasAnyConnection = isVKConnected || isYandexConnected;
 
-  // Загружаем все треки при монтировании (с защитой от дубликатов)
+  // Загружаем VK треки при первом входе (если store ещё не инициализирован)
   useEffect(() => {
-    const loadAllTracks = async () => {
-      // Защита от повторного вызова
-      if (!isVKConnected || isLoadingRef.current) return;
+    const loadVKTracks = async () => {
+      if (!isVKConnected || isLoadingRef.current || isInitialized) return;
       isLoadingRef.current = true;
       
-      setIsLoading(true);
+      setIsLoadingVK(true);
       setError(null);
       
       try {
-        // Используем Map для предотвращения дубликатов
-        const tracksMap = new Map<string, Track>();
+        const allTracks: Track[] = [];
         
-        // Первый запрос для получения общего количества
+        // Первый запрос
         const firstResponse = await vkApiService.getAudio({ count: 100, offset: 0 });
-        setTotalCount(firstResponse.count);
+        setVkLoadProgress({ loaded: firstResponse.items.length, total: firstResponse.count });
         
-        // Добавляем первые треки
         firstResponse.items.forEach((item) => {
-          const id = `vk_${item.id}`;
-          if (!tracksMap.has(id)) {
-            tracksMap.set(id, {
-              id,
-              title: item.title,
-              artist: item.artist,
-              duration: item.duration,
-              coverUrl: getVKAudioCover(item),
-              audioUrl: item.url,
-              source: MusicSource.VK,
-              isAvailable: !!item.url,
-            });
-          }
+          allTracks.push({
+            id: `vk_${item.id}`,
+            title: item.title,
+            artist: item.artist,
+            duration: item.duration,
+            coverUrl: getVKAudioCover(item),
+            audioUrl: item.url,
+            source: MusicSource.VK,
+            isAvailable: !!item.url,
+          });
         });
         
-        setFavorites(Array.from(tracksMap.values()));
-        setIsLoading(false);
+        // Сразу добавляем первую порцию
+        bulkAddToFavorites(allTracks);
         
-        // Загружаем остальные треки в фоне
+        // Загружаем остальные
         if (firstResponse.count > 100) {
-          setIsLoadingMore(true);
           const totalPages = Math.ceil(firstResponse.count / 100);
           
           for (let page = 1; page < totalPages; page++) {
@@ -97,45 +101,40 @@ export default function FavoritesPage() {
                 offset: page * 100 
               });
               
-              // Добавляем новые треки без дубликатов
-              response.items.forEach((item) => {
-                const id = `vk_${item.id}`;
-                if (!tracksMap.has(id)) {
-                  tracksMap.set(id, {
-                    id,
-                    title: item.title,
-                    artist: item.artist,
-                    duration: item.duration,
-                    coverUrl: getVKAudioCover(item),
-                    audioUrl: item.url,
-                    source: MusicSource.VK,
-                    isAvailable: !!item.url,
-                  });
-                }
-              });
+              const pageTracks: Track[] = response.items.map((item) => ({
+                id: `vk_${item.id}`,
+                title: item.title,
+                artist: item.artist,
+                duration: item.duration,
+                coverUrl: getVKAudioCover(item),
+                audioUrl: item.url,
+                source: MusicSource.VK,
+                isAvailable: !!item.url,
+              }));
               
-              setFavorites(Array.from(tracksMap.values()));
+              allTracks.push(...pageTracks);
+              bulkAddToFavorites(pageTracks);
+              setVkLoadProgress({ loaded: allTracks.length, total: firstResponse.count });
               
-              // Небольшая задержка чтобы не спамить API
               await new Promise(resolve => setTimeout(resolve, 300));
             } catch (err) {
               console.error(`Error loading page ${page}:`, err);
             }
           }
-          
-          setIsLoadingMore(false);
         }
+        
+        setIsLoadingVK(false);
       } catch (err) {
         console.error('Failed to load VK audio:', err);
         setError(err instanceof Error ? err.message : 'Ошибка загрузки треков');
-        setIsLoading(false);
+        setIsLoadingVK(false);
       }
     };
     
-    loadAllTracks();
-  }, [isVKConnected]);
+    loadVKTracks();
+  }, [isVKConnected, isInitialized, bulkAddToFavorites]);
 
-  // Фильтрация треков по поисковому запросу
+  // Фильтрация
   const filteredFavorites = useMemo(() => {
     if (!searchQuery.trim()) return favorites;
     
@@ -166,18 +165,17 @@ export default function FavoritesPage() {
     addToHistory(track);
   }, [filteredFavorites, playPlaylist, addToHistory]);
 
-  const sourceTabs = [
-    { id: 'all' as SourceTab, label: 'Все' },
-    ...(isVKConnected ? [{ id: 'vk' as SourceTab, label: 'VK' }] : []),
-    ...(isYandexConnected ? [{ id: 'yandex' as SourceTab, label: 'Яндекс' }] : []),
-  ];
+  const handleRefresh = useCallback(() => {
+    window.location.reload();
+  }, []);
+
+  const isLoading = isLoadingVK || storeLoading;
 
   return (
     <MainLayout>
       <div className="p-4 md:p-8 pb-32">
         {/* Header with gradient */}
         <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-pink-500 via-red-500 to-orange-500 p-6 md:p-8 mb-6 md:mb-8 overflow-hidden">
-          {/* Background pattern */}
           <div className="absolute inset-0 opacity-20">
             <div className="absolute top-0 right-0 w-32 md:w-64 h-32 md:h-64 rounded-full bg-white blur-3xl" />
             <div className="absolute bottom-0 left-0 w-48 md:w-96 h-48 md:h-96 rounded-full bg-white blur-3xl" />
@@ -191,10 +189,10 @@ export default function FavoritesPage() {
               <p className="text-xs md:text-sm font-medium opacity-80 mb-1">Коллекция</p>
               <h1 className="text-2xl md:text-4xl font-bold mb-2">Избранное</h1>
               <p className="opacity-80 text-sm md:text-base">
-                {filteredFavorites.length} {searchQuery ? 'найдено' : 'треков'}
-                {totalCount > favorites.length && !searchQuery && (
+                {favorites.length} треков
+                {isLoadingVK && vkLoadProgress.total > 0 && (
                   <span className="ml-2 text-xs opacity-70">
-                    (загружено {favorites.length} из {totalCount})
+                    (загрузка {vkLoadProgress.loaded} / {vkLoadProgress.total})
                   </span>
                 )}
               </p>
@@ -217,6 +215,14 @@ export default function FavoritesPage() {
               >
                 <Shuffle className="w-4 h-4 md:w-5 md:h-5" />
                 Перемешать
+              </button>
+              <button 
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="p-3 md:p-4 bg-white/20 backdrop-blur-sm text-white rounded-full hover:bg-white/30 transition-colors disabled:opacity-50"
+                title="Обновить"
+              >
+                <RefreshCw className={`w-4 h-4 md:w-5 md:h-5 ${isLoading ? 'animate-spin' : ''}`} />
               </button>
             </div>
           )}
@@ -241,121 +247,166 @@ export default function FavoritesPage() {
           </div>
         )}
 
-        {/* Search and filters */}
-        {hasAnyConnection && favorites.length > 0 && (
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            {/* Search input */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Поиск треков..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-10 py-3 bg-gray-100 dark:bg-neutral-800 rounded-xl md:rounded-2xl text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  <X className="w-4 h-4 text-gray-400" />
-                </button>
-              )}
-            </div>
-
-            {/* Source tabs */}
-            {sourceTabs.length > 1 && (
-              <div className="flex gap-2 p-1.5 bg-gray-100 dark:bg-neutral-800 rounded-xl md:rounded-2xl w-fit">
-                {sourceTabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveSource(tab.id)}
-                    className={`px-4 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl font-medium transition-all text-sm ${
-                      activeSource === tab.id
-                        ? 'bg-white dark:bg-neutral-700 shadow-sm text-black dark:text-white'
-                        : 'text-gray-500 hover:text-black dark:hover:text-white'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Loading */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
-          </div>
-        )}
-
-        {/* Loading more indicator */}
-        {isLoadingMore && (
-          <div className="flex items-center justify-center gap-2 py-4 text-gray-500 text-sm">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Загрузка треков... ({favorites.length} / {totalCount})</span>
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div className="mb-6 p-4 md:p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl md:rounded-2xl">
-            <p className="text-red-600 dark:text-red-400 text-sm md:text-base mb-3">
-              {error}
-            </p>
+        {/* Tabs */}
+        {hasAnyConnection && (
+          <div className="flex gap-2 mb-6 p-1.5 bg-gray-100 dark:bg-neutral-800 rounded-xl w-fit">
             <button
-              onClick={() => {
-                setError(null);
-                setIsLoading(true);
-                window.location.reload();
-              }}
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
+              onClick={() => setActiveTab('tracks')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm flex items-center gap-2 ${
+                activeTab === 'tracks'
+                  ? 'bg-white dark:bg-neutral-700 shadow-sm text-black dark:text-white'
+                  : 'text-gray-500 hover:text-black dark:hover:text-white'
+              }`}
             >
-              Повторить попытку
+              <Heart className="w-4 h-4" />
+              Треки
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm flex items-center gap-2 ${
+                activeTab === 'history'
+                  ? 'bg-white dark:bg-neutral-700 shadow-sm text-black dark:text-white'
+                  : 'text-gray-500 hover:text-black dark:hover:text-white'
+              }`}
+            >
+              <History className="w-4 h-4" />
+              История
+              {actionsHistory.length > 0 && (
+                <span className="text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded-full">
+                  {actionsHistory.length}
+                </span>
+              )}
             </button>
           </div>
         )}
 
-        {/* Favorites list */}
-        {hasAnyConnection && !isLoading && (
+        {/* Tracks Tab */}
+        {activeTab === 'tracks' && hasAnyConnection && (
           <>
-            {filteredFavorites.length > 0 ? (
-              <div className="space-y-0.5 md:space-y-1">
-                {filteredFavorites.map((track, index) => (
-                  <TrackItem
-                    key={track.id}
-                    track={track}
-                    index={index}
-                    showIndex
-                    onClick={() => handleTrackClick(track, index)}
+            {/* Search */}
+            {favorites.length > 0 && (
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Поиск треков..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-12 pr-10 py-3 bg-gray-100 dark:bg-neutral-800 rounded-xl md:rounded-2xl text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all"
                   />
-                ))}
-              </div>
-            ) : searchQuery ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-8 h-8 text-gray-400" />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                      <X className="w-4 h-4 text-gray-400" />
+                    </button>
+                  )}
                 </div>
-                <h2 className="text-xl font-bold mb-2">Ничего не найдено</h2>
-                <p className="text-gray-500">
-                  Попробуйте изменить поисковый запрос
+              </div>
+            )}
+
+            {/* Loading */}
+            {isLoading && favorites.length === 0 && (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
+              </div>
+            )}
+
+            {/* Error */}
+            {error && (
+              <div className="mb-6 p-4 md:p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl md:rounded-2xl">
+                <p className="text-red-600 dark:text-red-400 text-sm md:text-base mb-3">
+                  {error}
                 </p>
+                <button
+                  onClick={handleRefresh}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  Повторить попытку
+                </button>
               </div>
-            ) : !error && (
+            )}
+
+            {/* Favorites list */}
+            {!isLoading || favorites.length > 0 ? (
+              <>
+                {filteredFavorites.length > 0 ? (
+                  <div className="space-y-0.5 md:space-y-1">
+                    {filteredFavorites.map((track, index) => (
+                      <TrackItem
+                        key={track.id}
+                        track={track}
+                        index={index}
+                        showIndex
+                        onClick={() => handleTrackClick(track, index)}
+                      />
+                    ))}
+                  </div>
+                ) : searchQuery ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mx-auto mb-4">
+                      <Search className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h2 className="text-xl font-bold mb-2">Ничего не найдено</h2>
+                    <p className="text-gray-500">
+                      Попробуйте изменить поисковый запрос
+                    </p>
+                  </div>
+                ) : !error && (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mx-auto mb-4">
+                      <Heart className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h2 className="text-xl font-bold mb-2">Пока пусто</h2>
+                    <p className="text-gray-500 mb-4">
+                      Нажмите ❤️ на любом треке, чтобы добавить его в избранное
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </>
+        )}
+
+        {/* History Tab */}
+        {activeTab === 'history' && hasAnyConnection && (
+          <div className="space-y-2">
+            {actionsHistory.length > 0 ? (
+              actionsHistory.map((action, index) => (
+                <div 
+                  key={`${action.track.id}-${index}`}
+                  className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-neutral-800/50 rounded-xl"
+                >
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    action.type === 'add' 
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-600' 
+                      : 'bg-red-100 dark:bg-red-900/30 text-red-500'
+                  }`}>
+                    {action.type === 'add' ? <Plus className="w-5 h-5" /> : <Minus className="w-5 h-5" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{action.track.title}</p>
+                    <p className="text-sm text-gray-500 truncate">{action.track.artist}</p>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {formatDistanceToNow(new Date(action.timestamp), { addSuffix: true, locale: ru })}
+                  </div>
+                </div>
+              ))
+            ) : (
               <div className="text-center py-12">
                 <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mx-auto mb-4">
-                  <Heart className="w-8 h-8 text-gray-400" />
+                  <History className="w-8 h-8 text-gray-400" />
                 </div>
-                <h2 className="text-xl font-bold mb-2">Пока пусто</h2>
+                <h2 className="text-xl font-bold mb-2">История пуста</h2>
                 <p className="text-gray-500">
-                  Добавляйте треки в избранное, чтобы они появились здесь
+                  Здесь будут отображаться добавления и удаления треков
                 </p>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </MainLayout>

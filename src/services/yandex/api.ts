@@ -37,6 +37,17 @@ export class YandexApiService {
     }
     return YandexApiService.instance;
   }
+
+  /**
+   * Базовый метод запроса к Yandex Music API
+   * @todo Реализовать когда будет доступ к API
+   */
+  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    // Yandex Music API требует специальный доступ и авторизацию
+    // Этот метод пока не реализован
+    console.warn(`Yandex Music API request to ${endpoint} not implemented`);
+    throw new Error('Yandex Music API not implemented');
+  }
   
   /**
    * Получает информацию о текущем пользователе через Yandex ID API
@@ -73,17 +84,21 @@ export class YandexApiService {
   
   /**
    * Получает плейлисты пользователя
+   * @todo Реализовать когда будет доступ к Yandex Music API
    */
   public async getUserPlaylists(userId?: string): Promise<YandexPlaylist[]> {
-    const uid = userId || (await this.getCurrentUser()).uid;
-    return this.request<YandexPlaylist[]>(`/users/${uid}/playlists/list`);
+    // Yandex Music API требует специальный доступ
+    // Пока возвращаем пустой массив
+    console.warn('Yandex Music playlists API not implemented');
+    return [];
   }
   
   /**
    * Получает плейлист по ID
+   * @todo Реализовать когда будет доступ к Yandex Music API
    */
   public async getPlaylist(userId: number, kind: number): Promise<YandexPlaylist> {
-    return this.request<YandexPlaylist>(`/users/${userId}/playlists/${kind}`);
+    throw new Error('Yandex Music playlists API not implemented');
   }
   
   /**

@@ -125,7 +125,7 @@ export default function PlaylistPage() {
       ) : (
         <>
           {/* Header */}
-          <div className="flex flex-col md:flex-row gap-6 mb-8">
+          <div className="flex flex-col md:flex-row gap-6 mb-8 pt-6">
             {/* Cover */}
             <div className="relative w-48 h-48 md:w-56 md:h-56 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-800 dark:to-neutral-900 flex-shrink-0 shadow-xl mx-auto md:mx-0">
               {firstTrackCover ? (
@@ -173,13 +173,13 @@ export default function PlaylistPage() {
                 >
                   Перемешать
                 </Button>
-                <button
-                  onClick={() => router.back()}
+                <Link
+                  href="/playlists"
                   className="p-3 rounded-xl bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors"
-                  title="Назад"
+                  title="Все плейлисты"
                 >
                   <ArrowLeft className="w-5 h-5" />
-                </button>
+                </Link>
                 
                 {/* Menu */}
                 <div className="relative" ref={menuRef}>

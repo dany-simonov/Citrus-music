@@ -124,7 +124,7 @@ export default function LocalPlaylistPage() {
 
   return (
     <MainLayout>
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto pt-6">
         {/* Шапка плейлиста */}
         <div className="flex flex-col md:flex-row gap-6 md:gap-8 mb-8">
           {/* Обложка */}
@@ -204,6 +204,15 @@ export default function LocalPlaylistPage() {
                 <Shuffle className="w-5 h-5" />
               </button>
               
+              {/* Кнопка назад */}
+              <Link
+                href="/playlists"
+                className="p-3 rounded-full bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 transition-all"
+                title="Все плейлисты"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+              
               {/* Меню */}
               <div className="relative" ref={menuRef}>
                 <button 
@@ -237,17 +246,6 @@ export default function LocalPlaylistPage() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Навигация */}
-        <div className="mb-6">
-          <Link 
-            href="/playlists"
-            className="inline-flex items-center gap-2 text-gray-500 hover:text-black dark:hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Все плейлисты
-          </Link>
         </div>
 
         {/* Треки */}

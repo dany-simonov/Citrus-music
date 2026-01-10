@@ -24,7 +24,7 @@ interface AuthState {
   
   // VK Actions
   initiateVKAuth: () => Promise<void>;
-  handleVKCallback: (hash: string) => void;
+  handleVKCallback: (hash: string) => VKAuthTokens;
   setVKUser: (user: User) => void;
   setVKTokens: (tokens: VKAuthTokens) => void;
   clearVKAuth: () => void;

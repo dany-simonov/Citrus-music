@@ -210,6 +210,7 @@ export interface YandexUser {
   sex?: string;
   verified?: boolean;
   regions?: number[];
+  avatarUrl?: string;
 }
 
 /**

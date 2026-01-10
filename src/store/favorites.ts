@@ -11,11 +11,20 @@ interface FavoriteTrack extends Track {
   addedAt: Date;
 }
 
+// История действий с избранным
+interface FavoriteAction {
+  type: 'add' | 'remove';
+  track: Track;
+  timestamp: Date;
+}
+
 interface FavoritesState {
   // Данные
   favorites: FavoriteTrack[];
+  actionsHistory: FavoriteAction[];
   userId: string | null;
   isLoading: boolean;
+  isInitialized: boolean; // Флаг синхронизации с VK
   
   // Actions
   setUserId: (userId: string | null) => void;
@@ -24,14 +33,21 @@ interface FavoritesState {
   isFavorite: (trackId: string) => boolean;
   loadFavorites: () => Promise<void>;
   syncWithServer: () => Promise<void>;
+  
+  // Массовое добавление (для VK)
+  bulkAddToFavorites: (tracks: Track[]) => void;
+  setInitialized: (value: boolean) => void;
+  clearActionsHistory: () => void;
 }
 
 export const useFavoritesStore = create<FavoritesState>()(
   persist(
     (set, get) => ({
       favorites: [],
+      actionsHistory: [],
       userId: null,
       isLoading: false,
+      isInitialized: false,
       
       setUserId: (userId) => {
         set({ userId });
@@ -41,7 +57,7 @@ export const useFavoritesStore = create<FavoritesState>()(
       },
       
       addToFavorites: async (track) => {
-        const { userId, favorites } = get();
+        const { userId, favorites, actionsHistory } = get();
         
         // Проверяем, не добавлен ли уже
         if (favorites.some(f => f.id === track.id)) {
@@ -53,8 +69,18 @@ export const useFavoritesStore = create<FavoritesState>()(
           addedAt: new Date(),
         };
         
+        // Добавляем в историю действий
+        const action: FavoriteAction = {
+          type: 'add',
+          track,
+          timestamp: new Date(),
+        };
+        
         // Добавляем локально (в начало списка)
-        set({ favorites: [favoriteTrack, ...favorites] });
+        set({ 
+          favorites: [favoriteTrack, ...favorites],
+          actionsHistory: [action, ...actionsHistory].slice(0, 100), // Храним последние 100 действий
+        });
         
         // Синхронизируем с сервером если есть userId
         if (userId) {
@@ -71,7 +97,20 @@ export const useFavoritesStore = create<FavoritesState>()(
       },
       
       removeFromFavorites: async (trackId) => {
-        const { userId, favorites } = get();
+        const { userId, favorites, actionsHistory } = get();
+        
+        // Находим трек для истории
+        const track = favorites.find(f => f.id === trackId);
+        
+        // Добавляем в историю действий
+        if (track) {
+          const action: FavoriteAction = {
+            type: 'remove',
+            track,
+            timestamp: new Date(),
+          };
+          set({ actionsHistory: [action, ...actionsHistory].slice(0, 100) });
+        }
         
         // Удаляем локально
         set({ favorites: favorites.filter(f => f.id !== trackId) });
@@ -94,7 +133,6 @@ export const useFavoritesStore = create<FavoritesState>()(
       
       loadFavorites: async () => {
         const { userId, isLoading } = get();
-        // Предотвращаем множественные одновременные загрузки
         if (!userId || isLoading) return;
         
         set({ isLoading: true });
@@ -103,7 +141,7 @@ export const useFavoritesStore = create<FavoritesState>()(
           const response = await fetch(`/api/favorites?userId=${userId}`);
           const data = await response.json();
           
-          if (data.favorites) {
+          if (data.favorites && data.favorites.length > 0) {
             const favorites: FavoriteTrack[] = data.favorites.map((f: any) => ({
               id: f.trackId,
               title: f.title,
@@ -115,7 +153,7 @@ export const useFavoritesStore = create<FavoritesState>()(
               addedAt: new Date(f.addedAt),
               isAvailable: !!f.audioUrl,
             }));
-            set({ favorites });
+            set({ favorites, isInitialized: true });
           }
         } catch (error) {
           console.error('Error loading favorites:', error);
@@ -128,7 +166,6 @@ export const useFavoritesStore = create<FavoritesState>()(
         const { userId, favorites } = get();
         if (!userId) return;
         
-        // Синхронизируем локальные избранные с сервером
         for (const track of favorites) {
           try {
             await fetch('/api/favorites', {
@@ -141,12 +178,45 @@ export const useFavoritesStore = create<FavoritesState>()(
           }
         }
       },
+      
+      // Массовое добавление без дубликатов (для первоначальной загрузки VK)
+      bulkAddToFavorites: (tracks) => {
+        const { favorites } = get();
+        const existingIds = new Set(favorites.map(f => f.id));
+        
+        const newTracks: FavoriteTrack[] = tracks
+          .filter(t => !existingIds.has(t.id))
+          .map(t => ({
+            ...t,
+            addedAt: new Date(),
+          }));
+        
+        if (newTracks.length > 0) {
+          // Добавляем новые треки в конец (VK треки как база)
+          set({ 
+            favorites: [...favorites, ...newTracks],
+            isInitialized: true,
+          });
+        } else {
+          set({ isInitialized: true });
+        }
+      },
+      
+      setInitialized: (value) => {
+        set({ isInitialized: value });
+      },
+      
+      clearActionsHistory: () => {
+        set({ actionsHistory: [] });
+      },
     }),
     {
       name: 'citrus-favorites',
       partialize: (state) => ({
         favorites: state.favorites,
+        actionsHistory: state.actionsHistory,
         userId: state.userId,
+        isInitialized: state.isInitialized,
       }),
     }
   )

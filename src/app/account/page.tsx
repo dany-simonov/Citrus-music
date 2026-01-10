@@ -35,7 +35,7 @@ export default function AccountPage() {
     yandexUser,
     logout 
   } = useAuthStore();
-  const { history } = useHistoryStore();
+  const { items: history } = useHistoryStore();
 
   const user = vkUser || yandexUser;
   const source = vkUser ? 'VK' : yandexUser ? 'Яндекс' : null;
