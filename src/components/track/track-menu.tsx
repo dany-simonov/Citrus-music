@@ -8,6 +8,8 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Track } from '@/types/audio';
+import { usePlayerStore } from '@/store/player';
+import { useHistoryStore } from '@/store/history';
 import { cn } from '@/lib/utils';
 import { 
   MoreHorizontal, 
@@ -66,6 +68,8 @@ export function TrackMenu({
   className,
 }: TrackMenuProps) {
   const router = useRouter();
+  const { playPlaylist, toggleExpanded, currentTrack, setCurrentTrack, isExpanded } = usePlayerStore();
+  const { addToHistory } = useHistoryStore();
   const [isOpen, setIsOpen] = useState(false);
   const [showArtistSubmenu, setShowArtistSubmenu] = useState(false);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
@@ -74,6 +78,21 @@ export function TrackMenu({
   
   // Парсим исполнителей
   const artists = useMemo(() => parseArtists(track.artist), [track.artist]);
+
+  // Функция открытия полноэкранного плеера с текстом
+  const handleShowLyrics = () => {
+    // Если это не текущий трек - сначала запускаем его
+    if (currentTrack?.id !== track.id) {
+      playPlaylist([track], 0);
+      addToHistory(track);
+    }
+    // Открываем полноэкранный плеер если не открыт
+    if (!isExpanded) {
+      // Небольшая задержка чтобы трек успел загрузиться
+      setTimeout(() => toggleExpanded(), 100);
+    }
+    setIsOpen(false);
+  };
 
   // Закрытие меню при клике вне
   useEffect(() => {
@@ -188,10 +207,7 @@ export function TrackMenu({
       id: 'lyrics',
       label: 'Показать текст',
       icon: FileText,
-      onClick: () => {
-        onShowLyrics?.();
-        setIsOpen(false);
-      },
+      onClick: handleShowLyrics,
     },
     {
       id: 'similar',

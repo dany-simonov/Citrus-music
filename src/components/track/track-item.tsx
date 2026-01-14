@@ -224,7 +224,7 @@ export const TrackItem = memo(function TrackItem({
         {formatDuration(track.duration)}
       </div>
 
-      {/* Лайк */}
+      {/* Лайк - на мобильных показываем если залайкано */}
       <Tooltip content={isLiked ? 'Удалить из избранного' : 'Добавить в избранное'}>
         <button
           onClick={(e) => {
@@ -237,15 +237,16 @@ export const TrackItem = memo(function TrackItem({
             'transition-all duration-200',
             isLiked 
               ? 'text-red-500 opacity-100' 
-              : 'text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100',
-            'hidden sm:block'
+              : 'text-gray-400 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100',
+            // Скрываем незалайканные на маленьких экранах для экономии места
+            !isLiked && 'hidden sm:block'
           )}
         >
           <Heart className={cn('w-4 h-4', isLiked && 'fill-current')} />
         </button>
       </Tooltip>
 
-      {/* Меню */}
+      {/* Меню - всегда видимо на мобильных, на десктопе при наведении */}
       <TrackMenu 
         track={track}
         onPlay={handlePlay}
@@ -254,7 +255,7 @@ export const TrackItem = memo(function TrackItem({
         onLike={handleLike}
         isLiked={isLiked}
         onRemove={onRemove}
-        className="opacity-0 group-hover:opacity-100 transition-opacity"
+        className="sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
       />
 
       {/* Модальное окно добавления в плейлист */}

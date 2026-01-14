@@ -31,7 +31,7 @@ export const YANDEX_CONFIG = {
  */
 export const APP_CONFIG = {
   NAME: 'Citrus',
-  VERSION: process.env.NEXT_PUBLIC_CITRUS_VERSION || '1.0.0',
+  VERSION: process.env.NEXT_PUBLIC_CITRUS_VERSION || '1.1.0',
   URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   CACHE_ENABLED: process.env.NEXT_PUBLIC_CACHE_ENABLED === 'true',
 } as const;
@@ -49,6 +49,7 @@ export const STORAGE_KEYS = {
   PLAYER_VOLUME: 'citrus_player_volume',
   QUEUE: 'citrus_queue',
   HISTORY: 'citrus_history',
+  NOTIFICATIONS: 'citrus_notifications',
 } as const;
 
 /**

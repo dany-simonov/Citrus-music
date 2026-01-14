@@ -247,6 +247,8 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         vkUser: state.vkUser,
         yandexUser: state.yandexUser,
+        vkTokens: state.vkTokens,
+        yandexTokens: state.yandexTokens,
         isAuthenticated: state.isAuthenticated,
       }),
     }

@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePlayerStore } from '@/store/player';
+import { useFavoritesStore } from '@/store/favorites';
 import { useCoversStore, fetchDeezerCover } from '@/store/covers';
 import { PlayerState, RepeatMode } from '@/types/audio';
 import { formatDuration, cn } from '@/lib/utils';
@@ -53,7 +54,19 @@ export function Player() {
   } = usePlayerStore();
   
   const { getCover, setCover, isLoading, setLoading } = useCoversStore();
+  const { isFavorite, addToFavorites, removeFromFavorites } = useFavoritesStore();
   const [coverUrl, setCoverUrl] = useState<string | undefined>();
+  
+  const isLiked = currentTrack ? isFavorite(currentTrack.id) : false;
+  
+  const handleLike = () => {
+    if (!currentTrack) return;
+    if (isLiked) {
+      removeFromFavorites(currentTrack.id);
+    } else {
+      addToFavorites(currentTrack);
+    }
+  };
   
   // Ищем обложку для текущего трека
   useEffect(() => {
@@ -142,7 +155,11 @@ export function Player() {
         <div className="h-20 md:h-24 px-3 md:px-6 flex items-center justify-between gap-2 md:gap-4">
           {/* Информация о треке */}
           <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1 md:w-1/4 md:flex-none">
-            <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl overflow-hidden bg-gray-100 dark:bg-neutral-800 flex-shrink-0 shadow-lg">
+            {/* Обложка - кликабельна на мобильных для открытия полноэкранного плеера */}
+            <button 
+              onClick={toggleExpanded}
+              className="relative w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl overflow-hidden bg-gray-100 dark:bg-neutral-800 flex-shrink-0 shadow-lg md:cursor-default active:scale-95 md:active:scale-100 transition-transform"
+            >
               {coverUrl ? (
                 <img
                   src={coverUrl}
@@ -154,14 +171,29 @@ export function Player() {
                   <ListMusic className="w-5 h-5 md:w-7 md:h-7 text-gray-400" />
                 </div>
               )}
-            </div>
+              {/* Индикатор для мобильных */}
+              <div className="md:hidden absolute inset-0 flex items-center justify-center bg-black/20">
+                <FileText className="w-4 h-4 text-white drop-shadow-md" />
+              </div>
+            </button>
             <div className="min-w-0 flex-1">
               <p className="font-semibold truncate text-sm md:text-base">{currentTrack.title}</p>
               <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 truncate">{currentTrack.artist}</p>
+              {/* Мобильное время */}
+              <p className="md:hidden text-[10px] text-gray-400 dark:text-gray-500">
+                {formatDuration(progress)} / {formatDuration(duration)}
+              </p>
             </div>
-            <Tooltip content="Добавить в избранное">
-              <Button variant="icon" className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 text-gray-400 hover:text-red-500 hidden sm:flex">
-                <Heart className="w-4 h-4 md:w-5 md:h-5" />
+            <Tooltip content={isLiked ? 'Убрать из избранного' : 'Добавить в избранное'}>
+              <Button 
+                variant="icon" 
+                onClick={handleLike}
+                className={cn(
+                  'w-8 h-8 md:w-10 md:h-10 flex-shrink-0 hidden sm:flex',
+                  isLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-500'
+                )}
+              >
+                <Heart className={cn('w-4 h-4 md:w-5 md:h-5', isLiked && 'fill-current')} />
               </Button>
             </Tooltip>
           </div>
@@ -260,6 +292,17 @@ export function Player() {
             <span className="text-gray-300 dark:text-gray-600">/</span>
             <span className="min-w-[36px]">{formatDuration(duration)}</span>
           </div>
+        </div>
+
+        {/* Мобильная кнопка закрытия */}
+        <div className="md:hidden flex items-center">
+          <Button 
+            variant="icon" 
+            onClick={close}
+            className="w-10 h-10 text-gray-400 hover:text-red-500 active:scale-95"
+          >
+            <X className="w-5 h-5" />
+          </Button>
         </div>
 
         {/* Громкость и доп. кнопки */}

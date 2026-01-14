@@ -194,7 +194,7 @@ export default function FavoritesPage() {
 
   return (
     <MainLayout>
-      <div className="p-4 md:p-8 pb-32 overflow-x-hidden">
+      <div className="py-4 md:py-8 pb-32 overflow-x-hidden">
         {/* Header with gradient */}
         <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-pink-500 via-red-500 to-orange-500 p-6 md:p-8 mb-6 md:mb-8 overflow-hidden">
           <div className="absolute inset-0 opacity-20">

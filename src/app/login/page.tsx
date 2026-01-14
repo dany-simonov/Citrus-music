@@ -289,13 +289,13 @@ export default function LoginPage() {
           {/* Terms */}
           <p className="mt-10 text-xs text-gray-400 text-center leading-relaxed">
             Входя в приложение, вы соглашаетесь с{' '}
-            <a href="#" className="text-citrus-accent hover:underline font-medium">
+            <Link href="/terms" className="text-citrus-accent hover:underline font-medium">
               условиями использования
-            </a>{' '}
+            </Link>{' '}
             и{' '}
-            <a href="#" className="text-citrus-accent hover:underline font-medium">
+            <Link href="/privacy" className="text-citrus-accent hover:underline font-medium">
               политикой конфиденциальности
-            </a>
+            </Link>
           </p>
         </div>
       </div>

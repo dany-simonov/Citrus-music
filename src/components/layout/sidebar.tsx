@@ -17,7 +17,6 @@ import {
   ListMusic,
   Heart,
   Clock,
-  Settings,
   LogOut,
   Menu,
   X,
@@ -141,23 +140,9 @@ export function Sidebar({ className }: SidebarProps) {
         </nav>
       )}
 
-      {/* Нижняя часть - Настройки и Аккаунт (выше плеера) */}
+      {/* Нижняя часть - Аккаунт (выше плеера) */}
       <div className="mt-auto p-3 lg:p-4 pb-8 border-t border-gray-200/50 dark:border-neutral-800/50 space-y-2">
-        {/* Настройки - теперь сверху */}
-        <Link
-          href="/settings"
-          className={cn(
-            'flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl transition-all duration-200',
-            pathname === '/settings'
-              ? 'bg-black/5 dark:bg-white/10 text-orange-500'
-              : 'text-gray-500 hover:bg-black/5 dark:hover:bg-white/5'
-          )}
-        >
-          <Settings className="w-5 h-5" />
-          <span className="text-sm lg:text-base font-medium">Настройки</span>
-        </Link>
-
-        {/* Аккаунт - теперь снизу */}
+        {/* Аккаунт */}
         {isAuthenticated && user ? (
           <div className="flex items-center justify-between p-2 lg:p-3 rounded-xl lg:rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200">
             <Link 

@@ -1,13 +1,18 @@
 /**
- * Страница аккаунта
+ * Страница аккаунта с настройками
  * @module app/account/page
  */
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { useHistoryStore } from '@/store/history';
+import { useFavoritesStore } from '@/store/favorites';
+import { usePlaylistsStore } from '@/store/playlists';
+import { useNotificationsStore } from '@/store/notifications';
 import { MainLayout } from '@/components/layout';
+import { MusicSource } from '@/types/audio';
 import { 
   User, 
   Music, 
@@ -15,14 +20,18 @@ import {
   Clock, 
   ListMusic,
   LogOut,
-  Settings,
   ChevronRight,
-  Crown,
-  Star,
-  Calendar,
   Disc3,
+  Construction,
+  HelpCircle,
   Mail,
-  HelpCircle
+  Eye,
+  EyeOff,
+  Check,
+  AlertCircle,
+  Trash2,
+  Bell,
+  Key
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -33,32 +42,200 @@ export default function AccountPage() {
     isAuthenticated,
     vkUser, 
     yandexUser,
+    vkTokens,
+    setVKTokens,
+    setVKUser,
+    clearVKAuth,
     logout 
   } = useAuthStore();
   const { items: history } = useHistoryStore();
+  const { favorites } = useFavoritesStore();
+  const { playlists } = usePlaylistsStore();
+  const {
+    settings: notificationSettings,
+    permissionStatus,
+    setPushEnabled,
+    checkPermission,
+  } = useNotificationsStore();
 
   const user = vkUser || yandexUser;
   const source = vkUser ? 'VK' : yandexUser ? 'Яндекс' : null;
 
-  // Если не авторизован - показываем страницу входа
+  // Состояние для настроек VK токена
+  const [vkToken, setVkToken] = useState('');
+  const [showToken, setShowToken] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [notificationLoading, setNotificationLoading] = useState(false);
+
+  useEffect(() => {
+    if (vkTokens?.accessToken) {
+      setVkToken(vkTokens.accessToken);
+    }
+  }, [vkTokens]);
+
+  useEffect(() => {
+    checkPermission();
+  }, [checkPermission]);
+
+  const handleToggleNotifications = async () => {
+    setNotificationLoading(true);
+    try {
+      const success = await setPushEnabled(!notificationSettings.pushEnabled);
+      if (!success && !notificationSettings.pushEnabled) {
+        setErrorMessage('Разрешите уведомления в настройках браузера');
+      }
+    } finally {
+      setNotificationLoading(false);
+    }
+  };
+
+  const handleSaveVKToken = async () => {
+    if (!vkToken.trim()) {
+      setSaveStatus('error');
+      setErrorMessage('Введите токен');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/vk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: 'users.get',
+          params: { fields: 'photo_200' },
+          accessToken: vkToken,
+        }),
+      });
+      const data = await response.json();
+
+      if (data.error) {
+        setSaveStatus('error');
+        setErrorMessage(data.error.error_msg || 'Неверный токен');
+        return;
+      }
+
+      const userData = data.response[0];
+
+      setVKTokens({
+        accessToken: vkToken,
+        expiresIn: 0,
+        userId: userData.id,
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      });
+
+      setVKUser({
+        id: String(userData.id),
+        firstName: userData.first_name,
+        lastName: userData.last_name,
+        avatarUrl: userData.photo_200,
+        source: MusicSource.VK,
+      });
+
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch (err) {
+      setSaveStatus('error');
+      setErrorMessage('Ошибка проверки токена');
+    }
+  };
+
+  const handleClearVK = () => {
+    clearVKAuth();
+    setVkToken('');
+    setSaveStatus('idle');
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+  };
+
+  // Если не авторизован - показываем страницу входа с формой токена
   if (!isAuthenticated || !user) {
     return (
       <MainLayout>
-        <div className="p-4 md:p-8 pb-32">
-          <div className="max-w-md mx-auto text-center py-12">
+        <div className="p-4 md:p-8 pb-32 max-w-2xl mx-auto">
+          <div className="text-center py-8 mb-8">
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center mx-auto mb-6">
               <User className="w-12 h-12 text-white" />
             </div>
             <h1 className="text-2xl font-bold mb-2">Войдите в аккаунт</h1>
-            <p className="text-gray-500 mb-8">
-              Чтобы получить доступ к вашей музыке и плейлистам
+            <p className="text-gray-500">
+              Введите токен VK для доступа к музыке
             </p>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all"
-            >
-              Войти
-            </Link>
+          </div>
+
+          {/* VK Token Form */}
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-gray-200 dark:border-neutral-800">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center flex-shrink-0">
+                <Key className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold mb-1">VK Музыка</h2>
+                <p className="text-gray-500 text-sm">
+                  Для доступа к музыке VK нужен токен Kate Mobile
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Токен VK (Kate Mobile)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showToken ? 'text' : 'password'}
+                    value={vkToken}
+                    onChange={(e) => {
+                      setVkToken(e.target.value);
+                      setSaveStatus('idle');
+                    }}
+                    placeholder="Вставьте токен сюда..."
+                    className="w-full px-4 py-3 pr-12 bg-gray-100 dark:bg-neutral-800 rounded-xl border-2 border-transparent focus:border-orange-500 focus:outline-none transition-colors font-mono text-sm"
+                  />
+                  <button
+                    onClick={() => setShowToken(!showToken)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showToken ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {saveStatus === 'error' && (
+                <div className="flex items-center gap-2 text-red-500 text-sm">
+                  <AlertCircle className="w-4 h-4" />
+                  {errorMessage}
+                </div>
+              )}
+              {saveStatus === 'success' && (
+                <div className="flex items-center gap-2 text-green-500 text-sm">
+                  <Check className="w-4 h-4" />
+                  Токен сохранён! Перезагрузите страницу.
+                </div>
+              )}
+
+              <button
+                onClick={handleSaveVKToken}
+                className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all"
+              >
+                Войти с токеном VK
+              </button>
+
+              <div className="text-center">
+                <a
+                  href="https://vkhost.github.io/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-orange-500 hover:underline"
+                >
+                  Как получить токен VK?
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </MainLayout>
@@ -66,8 +243,8 @@ export default function AccountPage() {
   }
 
   const stats = [
-    { icon: Heart, label: 'Избранное', value: '473', href: '/favorites', color: 'text-red-500' },
-    { icon: ListMusic, label: 'Плейлисты', value: '12', href: '/playlists', color: 'text-purple-500' },
+    { icon: Heart, label: 'Избранное', value: String(favorites.length), href: '/favorites', color: 'text-red-500' },
+    { icon: ListMusic, label: 'Плейлисты', value: String(playlists.length), href: '/playlists', color: 'text-purple-500' },
     { icon: Clock, label: 'История', value: String(history.length), href: '/history', color: 'text-blue-500' },
   ];
 
@@ -75,14 +252,8 @@ export default function AccountPage() {
     { icon: Heart, label: 'Избранное', href: '/favorites' },
     { icon: ListMusic, label: 'Мои плейлисты', href: '/playlists' },
     { icon: Clock, label: 'История', href: '/history' },
-    { icon: Disc3, label: 'Загрузки', href: '#' },
-    { icon: Settings, label: 'Настройки', href: '/settings' },
+    { icon: Disc3, label: 'Загрузки', href: '#', badge: 'Скоро' },
   ];
-
-  const handleLogout = () => {
-    logout();
-    router.push('/');
-  };
 
   return (
     <MainLayout>
@@ -115,19 +286,14 @@ export default function AccountPage() {
                 <h1 className="text-2xl md:text-3xl font-bold">
                   {user.firstName} {user.lastName}
                 </h1>
-                <Crown className="w-6 h-6 text-yellow-300" />
               </div>
               <p className="text-white/80 mb-4">
                 {source} • ID: {user.id}
               </p>
               <div className="flex items-center justify-center md:justify-start gap-2">
-                <div className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium">
-                  <Star className="w-4 h-4 inline mr-1" />
-                  Premium
-                </div>
                 <div className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm">
-                  <Calendar className="w-4 h-4 inline mr-1" />
-                  с 2024
+                  <Music className="w-4 h-4 inline mr-1" />
+                  Цитрус
                 </div>
               </div>
             </div>
@@ -164,10 +330,47 @@ export default function AccountPage() {
                   <item.icon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 </div>
                 <span className="font-medium">{item.label}</span>
+                {'badge' in item && item.badge && (
+                  <span className="px-2 py-0.5 bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-full text-xs font-medium flex items-center gap-1">
+                    <Construction className="w-3 h-3" />
+                    {item.badge}
+                  </span>
+                )}
               </div>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </Link>
           ))}
+        </div>
+
+        {/* Notifications */}
+        <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 mb-6 border border-gray-200 dark:border-neutral-800">
+          <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <Bell className="w-5 h-5" />
+            Уведомления
+          </h2>
+          
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl">
+            <div>
+              <p className="font-medium">Push-уведомления</p>
+              <p className="text-sm text-gray-500">Новые релизы и рекомендации</p>
+              {permissionStatus === 'denied' && (
+                <p className="text-xs text-red-500 mt-1">
+                  Уведомления заблокированы в браузере
+                </p>
+              )}
+            </div>
+            <button
+              onClick={handleToggleNotifications}
+              disabled={notificationLoading || permissionStatus === 'not-supported'}
+              className={`w-14 h-8 rounded-full transition-colors disabled:opacity-50 ${
+                notificationSettings.pushEnabled ? 'bg-orange-500' : 'bg-gray-300'
+              }`}
+            >
+              <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform mx-1 ${
+                notificationSettings.pushEnabled ? 'translate-x-6' : 'translate-x-0'
+              }`} />
+            </button>
+          </div>
         </div>
 
         {/* Connected Services */}
@@ -186,9 +389,18 @@ export default function AccountPage() {
                     <p className="text-sm text-gray-500">{vkUser.firstName} {vkUser.lastName}</p>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-green-500/20 text-green-600 rounded-full text-sm font-medium">
-                  Подключено
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-green-500/20 text-green-600 rounded-full text-sm font-medium">
+                    Подключено
+                  </span>
+                  <button
+                    onClick={handleClearVK}
+                    className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                    title="Отключить"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
             
@@ -210,19 +422,97 @@ export default function AccountPage() {
             )}
             
             {!vkUser && (
-              <Link
-                href="/settings"
-                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
-              >
-                <div className="flex items-center gap-3">
+              <div className="p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center">
                     <Music className="w-5 h-5 text-white" />
                   </div>
-                  <span className="font-medium">Подключить VK Музыку</span>
+                  <span className="font-medium">VK не подключён</span>
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
-              </Link>
+                <p className="text-sm text-gray-500">
+                  Введите токен VK в разделе ниже для доступа к музыке
+                </p>
+              </div>
             )}
+          </div>
+        </div>
+
+        {/* VK Token Settings */}
+        <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-gray-200 dark:border-neutral-800 mb-6">
+          <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <Key className="w-5 h-5" />
+            Токен VK
+          </h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Токен Kate Mobile
+              </label>
+              <div className="relative">
+                <input
+                  type={showToken ? 'text' : 'password'}
+                  value={vkToken}
+                  onChange={(e) => {
+                    setVkToken(e.target.value);
+                    setSaveStatus('idle');
+                  }}
+                  placeholder="Вставьте токен сюда..."
+                  className="w-full px-4 py-3 pr-12 bg-gray-100 dark:bg-neutral-800 rounded-xl border-2 border-transparent focus:border-orange-500 focus:outline-none transition-colors font-mono text-sm"
+                />
+                <button
+                  onClick={() => setShowToken(!showToken)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  {showToken ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            {saveStatus === 'error' && (
+              <div className="flex items-center gap-2 text-red-500 text-sm">
+                <AlertCircle className="w-4 h-4" />
+                {errorMessage}
+              </div>
+            )}
+            {saveStatus === 'success' && (
+              <div className="flex items-center gap-2 text-green-500 text-sm">
+                <Check className="w-4 h-4" />
+                Токен сохранён!
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleSaveVKToken}
+                className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all"
+              >
+                Сохранить токен
+              </button>
+              {vkToken && (
+                <button
+                  onClick={() => {
+                    setVkToken('');
+                    setSaveStatus('idle');
+                  }}
+                  className="px-6 py-3 bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Очистить
+                </button>
+              )}
+            </div>
+
+            <p className="text-sm text-gray-500">
+              <a
+                href="https://vkhost.github.io/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-orange-500 hover:underline"
+              >
+                Как получить токен VK?
+              </a>
+            </p>
           </div>
         </div>
 

@@ -400,3 +400,42 @@ input:focus-visible {
   @apply outline-none ring-2 ring-citrus-accent ring-offset-2 
          ring-offset-white dark:ring-offset-black;
 }
+/* Mobile-specific improvements */
+@media (max-width: 640px) {
+  /* Increase touch targets for better mobile UX */
+  .btn-icon {
+    @apply min-w-[44px] min-h-[44px];
+  }
+  
+  /* Improve scrolling on mobile */
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Prevent text selection on buttons during touch */
+  button {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Range slider improvements for touch */
+  input[type="range"]::-webkit-slider-thumb {
+    @apply w-5 h-5;
+  }
+  
+  input[type="range"]::-moz-range-thumb {
+    @apply w-5 h-5;
+  }
+}
+
+/* Safe area insets for notched devices (iPhone X+, etc.) */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .player-container {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .sidebar {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

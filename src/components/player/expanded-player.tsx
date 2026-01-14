@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePlayerStore } from '@/store/player';
+import { useFavoritesStore } from '@/store/favorites';
 import { useCoversStore, fetchDeezerCover } from '@/store/covers';
 import { PlayerState, RepeatMode, MusicSource } from '@/types/audio';
 import { formatDuration, cn } from '@/lib/utils';
@@ -52,10 +53,22 @@ export function ExpandedPlayer() {
   } = usePlayerStore();
 
   const { getCover, setCover, isLoading, setLoading } = useCoversStore();
+  const { isFavorite, addToFavorites, removeFromFavorites } = useFavoritesStore();
   const [coverUrl, setCoverUrl] = useState<string | undefined>();
   const [lyrics, setLyrics] = useState<string | null>(null);
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const [lyricsError, setLyricsError] = useState<string | null>(null);
+  
+  const isLiked = currentTrack ? isFavorite(currentTrack.id) : false;
+  
+  const handleLike = () => {
+    if (!currentTrack) return;
+    if (isLiked) {
+      removeFromFavorites(currentTrack.id);
+    } else {
+      addToFavorites(currentTrack);
+    }
+  };
 
   // Загружаем обложку
   useEffect(() => {
@@ -107,17 +120,67 @@ export function ExpandedPlayer() {
       setLyrics(null);
 
       try {
-        // Для VK треков с lyrics_id
+        // Сначала пробуем VK API если есть lyrics_id
         if (currentTrack.source === MusicSource.VK && currentTrack.lyricsId) {
-          const result = await vkApiService.getLyrics(currentTrack.lyricsId);
-          if (result?.text) {
-            setLyrics(result.text);
-          } else {
-            setLyricsError('Текст песни не найден');
+          try {
+            const result = await vkApiService.getLyrics(currentTrack.lyricsId);
+            if (result?.text) {
+              setLyrics(result.text);
+              setLyricsLoading(false);
+              return;
+            }
+          } catch (vkErr) {
+            console.log('VK lyrics not available, trying external API');
           }
-        } else {
-          setLyricsError('Текст недоступен для этого трека');
         }
+        
+        // Пробуем внешний API для поиска текста
+        // Очищаем название от скобок и feat/ft
+        const cleanTitle = currentTrack.title
+          .replace(/\s*\([^)]*\)/g, '') // убираем скобки
+          .replace(/\s*(feat\.|ft\.|featuring)[^,]*/gi, '') // убираем feat
+          .trim();
+        
+        // Берём первого исполнителя
+        const artist = currentTrack.artist.split(/[,&]/)[0].trim();
+        
+        // Пробуем lrclib.net (бесплатный API для текстов)
+        try {
+          const lrclibResponse = await fetch(
+            `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(cleanTitle)}`
+          );
+          
+          if (lrclibResponse.ok) {
+            const data = await lrclibResponse.json();
+            if (data.plainLyrics || data.syncedLyrics) {
+              setLyrics(data.plainLyrics || data.syncedLyrics.replace(/\[\d+:\d+\.\d+\]/g, '').trim());
+              setLyricsLoading(false);
+              return;
+            }
+          }
+        } catch (e) {
+          console.log('lrclib.net failed:', e);
+        }
+        
+        // Пробуем lyrics.ovh как запасной вариант
+        try {
+          const oVHResponse = await fetch(
+            `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(cleanTitle)}`
+          );
+          
+          if (oVHResponse.ok) {
+            const data = await oVHResponse.json();
+            if (data.lyrics) {
+              setLyrics(data.lyrics.trim());
+              setLyricsLoading(false);
+              return;
+            }
+          }
+        } catch (e) {
+          console.log('lyrics.ovh failed:', e);
+        }
+        
+        setLyricsError('Текст недоступен для этого трека');
       } catch (err) {
         console.error('Error fetching lyrics:', err);
         setLyricsError('Ошибка загрузки текста');
@@ -310,16 +373,21 @@ export function ExpandedPlayer() {
 
             {/* Дополнительные контролы */}
             <div className="flex items-center gap-4">
-              <Tooltip content="Добавить в избранное">
+              <Tooltip content={isLiked ? 'Убрать из избранного' : 'Добавить в избранное'}>
                 <Button
                   variant="icon"
-                  className="w-10 h-10 text-white/70 hover:text-red-400"
+                  onClick={handleLike}
+                  className={cn(
+                    'w-10 h-10',
+                    isLiked ? 'text-red-400' : 'text-white/70 hover:text-red-400'
+                  )}
                 >
-                  <Heart className="w-5 h-5" />
+                  <Heart className={cn('w-5 h-5', isLiked && 'fill-current')} />
                 </Button>
               </Tooltip>
 
-              <div className="flex items-center gap-2">
+              {/* Громкость - только на десктопе (на мобильных используется системная) */}
+              <div className="hidden md:flex items-center gap-2">
                 <Tooltip content={isMuted || volume === 0 ? 'Включить звук' : 'Выключить звук'}>
                   <Button
                     variant="icon"
@@ -347,11 +415,11 @@ export function ExpandedPlayer() {
           </div>
 
           {/* Правая часть - текст песни */}
-          <div className="w-full lg:w-1/2 h-64 lg:h-full max-w-lg flex flex-col">
-            <h3 className="text-lg font-semibold text-white/80 mb-4 px-4">
+          <div className="w-full lg:w-1/2 h-48 sm:h-64 lg:h-full max-w-lg flex flex-col">
+            <h3 className="text-base md:text-lg font-semibold text-white/80 mb-3 md:mb-4 px-4">
               Текст песни
             </h3>
-            <div className="flex-1 overflow-y-auto px-4 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+            <div className="flex-1 overflow-y-auto px-4 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent overscroll-contain touch-pan-y">
               {lyricsLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="w-8 h-8 text-white/50 animate-spin" />
