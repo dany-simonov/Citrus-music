@@ -39,7 +39,16 @@ interface PlaylistItem {
 
 export default function PlaylistsPage() {
   const { vkTokens, yandexTokens, isAuthenticated } = useAuthStore();
-  const { playlists: userPlaylists, loadPlaylists: loadUserPlaylists, createPlaylist, deletePlaylist, isLoading: userPlaylistsLoading } = usePlaylistsStore();
+  const { 
+    playlists: userPlaylists, 
+    loadPlaylists: loadUserPlaylists, 
+    createPlaylist, 
+    deletePlaylist, 
+    isLoading: userPlaylistsLoading,
+    vkPlaylists: cachedVKPlaylists,
+    setVKPlaylists,
+    isVKPlaylistsCacheValid,
+  } = usePlaylistsStore();
   
   const [activeSource, setActiveSource] = useState<SourceTab>('all');
   const [playlists, setPlaylists] = useState<PlaylistItem[]>([]);
@@ -56,12 +65,27 @@ export default function PlaylistsPage() {
   const hasAnyConnection = isVKConnected || isYandexConnected;
 
   // Загрузка плейлистов из VK
-  const loadVKPlaylists = useCallback(async () => {
+  const loadVKPlaylists = useCallback(async (forceRefresh = false) => {
     if (!isVKConnected) return [];
+    
+    // Используем кэш если он валиден и не принудительное обновление
+    if (!forceRefresh && isVKPlaylistsCacheValid() && cachedVKPlaylists.length > 0) {
+      console.log('[Playlists] Using cached VK playlists');
+      return cachedVKPlaylists.map(p => ({
+        id: `vk_${p.ownerId}_${p.id}`,
+        title: p.title,
+        cover: p.cover,
+        trackCount: p.trackCount,
+        source: 'vk' as const,
+        ownerId: p.ownerId,
+        accessKey: p.accessKey,
+      }));
+    }
     
     const vkPlaylists: PlaylistItem[] = [];
     
     try {
+      console.log('[Playlists] Loading VK playlists from API...');
       const currentUser = await vkApiService.getCurrentUser();
       if (!currentUser?.id) return [];
       
@@ -71,6 +95,15 @@ export default function PlaylistsPage() {
       });
       
       if (vkData?.items) {
+        const cacheItems: Array<{
+          id: string;
+          title: string;
+          cover?: string;
+          trackCount: number;
+          ownerId: number;
+          accessKey?: string;
+        }> = [];
+        
         vkData.items.forEach((p) => {
           let cover = p.photo?.photo_600 || 
                       p.photo?.photo_300 || 
@@ -85,26 +118,39 @@ export default function PlaylistsPage() {
             ownerId: p.owner_id,
             accessKey: p.access_key,
           });
+          
+          // Сохраняем в кэш
+          cacheItems.push({
+            id: String(p.id),
+            title: p.title,
+            cover: cover,
+            trackCount: p.count,
+            ownerId: p.owner_id,
+            accessKey: p.access_key,
+          });
         });
+        
+        // Сохраняем в store
+        setVKPlaylists(cacheItems);
       }
     } catch (err) {
       console.error('Error loading VK playlists:', err);
     }
     
     return vkPlaylists;
-  }, [isVKConnected]);
+  }, [isVKConnected, cachedVKPlaylists, isVKPlaylistsCacheValid, setVKPlaylists]);
 
   // Загрузка всех плейлистов
-  const loadAllPlaylists = useCallback(async () => {
+  const loadAllPlaylists = useCallback(async (forceRefresh = false) => {
     setIsLoading(true);
     setError(null);
     
     try {
       // Загружаем пользовательские плейлисты
-      await loadUserPlaylists();
+      await loadUserPlaylists(forceRefresh);
       
       // Загружаем VK плейлисты
-      const vkPlaylists = await loadVKPlaylists();
+      const vkPlaylists = await loadVKPlaylists(forceRefresh);
       
       setPlaylists(vkPlaylists);
     } catch (err: any) {
@@ -115,10 +161,15 @@ export default function PlaylistsPage() {
     }
   }, [loadUserPlaylists, loadVKPlaylists]);
 
-  // Загружаем при монтировании
+  // Загружаем при монтировании (без принудительного обновления - используем кэш)
   useEffect(() => {
-    loadAllPlaylists();
+    loadAllPlaylists(false);
   }, [loadAllPlaylists]);
+
+  // Функция принудительного обновления
+  const handleRefresh = () => {
+    loadAllPlaylists(true);
+  };
 
   // Создание нового плейлиста
   const handleCreatePlaylist = async () => {
@@ -212,9 +263,10 @@ export default function PlaylistsPage() {
               Создать плейлист
             </button>
             <button 
-              onClick={loadAllPlaylists}
+              onClick={handleRefresh}
               disabled={isLoading}
               className="px-4 md:px-5 py-3 md:py-4 bg-white/20 hover:bg-white/30 text-white rounded-full font-semibold transition-all flex items-center gap-2 text-sm md:text-base disabled:opacity-50"
+              title="Обновить плейлисты"
             >
               <RefreshCw className={`w-4 h-4 md:w-5 md:h-5 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
@@ -315,7 +367,7 @@ export default function PlaylistsPage() {
               {error}
             </p>
             <button
-              onClick={loadAllPlaylists}
+              onClick={handleRefresh}
               className="px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl md:rounded-2xl font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all text-sm md:text-base flex items-center gap-2"
             >
               <RefreshCw className="w-5 h-5" />

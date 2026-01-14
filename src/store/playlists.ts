@@ -18,42 +18,90 @@ export interface UserPlaylist {
   updatedAt: Date;
 }
 
+export interface VKPlaylistCache {
+  id: string;
+  title: string;
+  cover?: string;
+  trackCount: number;
+  ownerId: number;
+  accessKey?: string;
+}
+
+// Время жизни кэша - 30 минут
+const CACHE_TTL = 30 * 60 * 1000;
+
 interface PlaylistsState {
   // Данные
   playlists: UserPlaylist[];
+  vkPlaylists: VKPlaylistCache[];
   userId: string | null;
   isLoading: boolean;
+  lastFetchedAt: number | null;
+  vkPlaylistsLastFetchedAt: number | null;
   
   // Actions
   setUserId: (userId: string | null) => void;
-  loadPlaylists: () => Promise<void>;
+  loadPlaylists: (forceRefresh?: boolean) => Promise<void>;
   createPlaylist: (title: string, description?: string) => Promise<UserPlaylist | null>;
   deletePlaylist: (playlistId: string) => Promise<void>;
   updatePlaylist: (playlistId: string, data: { name?: string; description?: string }) => Promise<void>;
   addTrackToPlaylist: (playlistId: string, track: Track) => Promise<boolean>;
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
   getPlaylist: (playlistId: string) => UserPlaylist | undefined;
+  
+  // VK плейлисты
+  setVKPlaylists: (playlists: VKPlaylistCache[]) => void;
+  getVKPlaylists: () => VKPlaylistCache[];
+  isVKPlaylistsCacheValid: () => boolean;
+  isCacheValid: () => boolean;
 }
 
 export const usePlaylistsStore = create<PlaylistsState>()(
   persist(
     (set, get) => ({
       playlists: [],
+      vkPlaylists: [],
       userId: null,
       isLoading: false,
+      lastFetchedAt: null,
+      vkPlaylistsLastFetchedAt: null,
       
       setUserId: (userId) => {
-        set({ userId });
-        if (userId) {
-          get().loadPlaylists();
+        const { userId: currentUserId } = get();
+        // Только если пользователь изменился
+        if (currentUserId !== userId) {
+          set({ userId });
+          if (userId) {
+            get().loadPlaylists(true); // Принудительное обновление при смене пользователя
+          }
         }
       },
       
-      loadPlaylists: async () => {
-        const { userId } = get();
+      isCacheValid: () => {
+        const { lastFetchedAt } = get();
+        if (!lastFetchedAt) return false;
+        return Date.now() - lastFetchedAt < CACHE_TTL;
+      },
+      
+      isVKPlaylistsCacheValid: () => {
+        const { vkPlaylistsLastFetchedAt } = get();
+        if (!vkPlaylistsLastFetchedAt) return false;
+        return Date.now() - vkPlaylistsLastFetchedAt < CACHE_TTL;
+      },
+      
+      loadPlaylists: async (forceRefresh = false) => {
+        const { userId, isLoading, isCacheValid, playlists } = get();
         if (!userId) return;
         
+        // Не загружаем повторно, если уже загружаем или кэш валиден
+        if (isLoading) return;
+        if (!forceRefresh && isCacheValid() && playlists.length > 0) {
+          console.log('[Playlists] Using cached data');
+          return;
+        }
+        
         set({ isLoading: true });
+        console.log('[Playlists] Loading from server...');
         
         try {
           const response = await fetch(`/api/playlists?userId=${userId}`);
@@ -79,7 +127,7 @@ export const usePlaylistsStore = create<PlaylistsState>()(
               createdAt: new Date(p.createdAt),
               updatedAt: new Date(p.updatedAt),
             }));
-            set({ playlists });
+            set({ playlists, lastFetchedAt: Date.now() });
           }
         } catch (error) {
           console.error('Error loading playlists:', error);
@@ -87,6 +135,13 @@ export const usePlaylistsStore = create<PlaylistsState>()(
           set({ isLoading: false });
         }
       },
+      
+      setVKPlaylists: (vkPlaylists) => {
+        set({ vkPlaylists, vkPlaylistsLastFetchedAt: Date.now() });
+        console.log('[Playlists] VK playlists cached:', vkPlaylists.length);
+      },
+      
+      getVKPlaylists: () => get().vkPlaylists,
       
       createPlaylist: async (title, description) => {
         const { userId, playlists } = get();
@@ -248,7 +303,10 @@ export const usePlaylistsStore = create<PlaylistsState>()(
       name: 'citrus-user-playlists',
       partialize: (state) => ({
         playlists: state.playlists,
+        vkPlaylists: state.vkPlaylists,
         userId: state.userId,
+        lastFetchedAt: state.lastFetchedAt,
+        vkPlaylistsLastFetchedAt: state.vkPlaylistsLastFetchedAt,
       }),
     }
   )

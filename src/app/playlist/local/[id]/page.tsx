@@ -41,7 +41,7 @@ export default function LocalPlaylistPage() {
 
   useEffect(() => {
     const init = async () => {
-      await loadPlaylists();
+      await loadPlaylists(false); // Используем кэш
       setIsLoading(false);
     };
     init();

@@ -26,13 +26,14 @@ interface FavoritesState {
   userId: string | null;
   isLoading: boolean;
   isInitialized: boolean; // Флаг синхронизации с VK
+  lastFetchedAt: number | null; // Время последней загрузки с сервера
   
   // Actions
   setUserId: (userId: string | null) => void;
   addToFavorites: (track: Track) => Promise<void>;
   removeFromFavorites: (trackId: string) => Promise<void>;
   isFavorite: (trackId: string) => boolean;
-  loadFavorites: () => Promise<void>;
+  loadFavorites: (forceRefresh?: boolean) => Promise<void>;
   syncWithServer: () => Promise<void>;
   
   // Массовое добавление (для VK)
@@ -43,7 +44,13 @@ interface FavoritesState {
   
   // Отметить историю как прочитанную
   markHistoryAsRead: () => void;
+  
+  // Проверка кэша
+  isCacheValid: () => boolean;
 }
+
+// Время жизни кэша - 30 минут
+const CACHE_TTL = 30 * 60 * 1000;
 
 export const useFavoritesStore = create<FavoritesState>()(
   persist(
@@ -54,11 +61,22 @@ export const useFavoritesStore = create<FavoritesState>()(
       userId: null,
       isLoading: false,
       isInitialized: false,
+      lastFetchedAt: null,
+      
+      isCacheValid: () => {
+        const { lastFetchedAt } = get();
+        if (!lastFetchedAt) return false;
+        return Date.now() - lastFetchedAt < CACHE_TTL;
+      },
       
       setUserId: (userId) => {
-        set({ userId });
-        if (userId) {
-          get().loadFavorites();
+        const { userId: currentUserId } = get();
+        // Только если пользователь изменился
+        if (currentUserId !== userId) {
+          set({ userId });
+          if (userId) {
+            get().loadFavorites(true); // Принудительное обновление при смене пользователя
+          }
         }
       },
       
@@ -141,11 +159,19 @@ export const useFavoritesStore = create<FavoritesState>()(
         return get().favorites.some(f => f.id === trackId);
       },
       
-      loadFavorites: async () => {
-        const { userId, isLoading } = get();
-        if (!userId || isLoading) return;
+      loadFavorites: async (forceRefresh = false) => {
+        const { userId, isLoading, isCacheValid, favorites } = get();
+        if (!userId) return;
+        
+        // Не загружаем повторно, если уже загружаем или кэш валиден
+        if (isLoading) return;
+        if (!forceRefresh && isCacheValid() && favorites.length > 0) {
+          console.log('[Favorites] Using cached data');
+          return;
+        }
         
         set({ isLoading: true });
+        console.log('[Favorites] Loading from server...');
         
         try {
           const response = await fetch(`/api/favorites?userId=${userId}`);
@@ -163,7 +189,9 @@ export const useFavoritesStore = create<FavoritesState>()(
               addedAt: new Date(f.addedAt),
               isAvailable: !!f.audioUrl,
             }));
-            set({ favorites, isInitialized: true });
+            set({ favorites, isInitialized: true, lastFetchedAt: Date.now() });
+          } else {
+            set({ lastFetchedAt: Date.now() });
           }
         } catch (error) {
           console.error('Error loading favorites:', error);
@@ -236,6 +264,7 @@ export const useFavoritesStore = create<FavoritesState>()(
         unreadActionsCount: state.unreadActionsCount,
         userId: state.userId,
         isInitialized: state.isInitialized,
+        lastFetchedAt: state.lastFetchedAt,
       }),
     }
   )

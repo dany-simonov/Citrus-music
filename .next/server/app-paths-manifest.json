@@ -1,5 +1,7 @@
 {
   "/page": "app/page.js",
-  "/api/playlists/route": "app/api/playlists/route.js",
-  "/api/favorites/route": "app/api/favorites/route.js"
+  "/account/page": "app/account/page.js",
+  "/favorites/page": "app/favorites/page.js",
+  "/playlists/page": "app/playlists/page.js",
+  "/history/page": "app/history/page.js"
 }
