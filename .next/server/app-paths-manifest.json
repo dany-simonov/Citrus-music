@@ -1,4 +1,10 @@
 {
-  "/account/page": "app/account/page.js",
-  "/page": "app/page.js"
+  "/playlists/page": "app/playlists/page.js",
+  "/api/vk/route": "app/api/vk/route.js",
+  "/playlist/local/[id]/page": "app/playlist/local/[id]/page.js",
+  "/api/playlists/route": "app/api/playlists/route.js",
+  "/favorites/page": "app/favorites/page.js",
+  "/history/page": "app/history/page.js",
+  "/search/page": "app/search/page.js",
+  "/api/deezer/route": "app/api/deezer/route.js"
 }
