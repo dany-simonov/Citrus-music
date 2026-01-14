@@ -1,5 +1,9 @@
 /**
  * Сервис для работы с Yandex Music API
+ * Использует серверный прокси для обхода CORS
+ * 
+ * ⚠️ ВАЖНО: Это неофициальный API, который может измениться без предупреждения.
+ * 
  * @module services/yandex/api
  */
 
@@ -15,18 +19,25 @@ import type {
   YandexDownloadInfo,
 } from '@/types/yandex';
 
+// Интерфейс для ответа API
+interface YandexApiResponse<T> {
+  result: T;
+  error?: string;
+}
+
+// Кэш пользователя (чтобы не запрашивать при каждом вызове)
+let cachedUser: YandexUser | null = null;
+let cachedUserId: number | null = null;
+
 /**
- * Класс для работы с Yandex API
- * Использует Yandex ID API для получения информации о пользователе
+ * Класс для работы с Yandex Music API
+ * Все запросы идут через /api/yandex прокси
  */
 export class YandexApiService {
   private static instance: YandexApiService;
-  private userInfoUrl: string;
+  private proxyUrl: string = '/api/yandex';
   
-  private constructor() {
-    // Yandex ID API для информации о пользователе
-    this.userInfoUrl = 'https://login.yandex.ru/info';
-  }
+  private constructor() {}
   
   /**
    * Получить singleton экземпляр
@@ -39,66 +50,123 @@ export class YandexApiService {
   }
 
   /**
-   * Базовый метод запроса к Yandex Music API
-   * @todo Реализовать когда будет доступ к API
+   * Получить токен доступа
    */
-  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    // Yandex Music API требует специальный доступ и авторизацию
-    // Этот метод пока не реализован
-    console.warn(`Yandex Music API request to ${endpoint} not implemented`);
-    throw new Error('Yandex Music API not implemented');
-  }
-  
-  /**
-   * Получает информацию о текущем пользователе через Yandex ID API
-   */
-  public async getCurrentUser(): Promise<YandexUser> {
+  private getAccessToken(): string {
     const tokens = yandexAuthService.getTokens();
-    if (!tokens) {
-      throw new Error('Not authenticated with Yandex');
+    if (!tokens?.accessToken) {
+      throw new Error('Не авторизован в Яндекс.Музыке. Введите токен в настройках аккаунта.');
     }
+    return tokens.accessToken;
+  }
+
+  /**
+   * Базовый метод запроса через прокси
+   */
+  private async request<T>(method: string, params?: Record<string, any>): Promise<T> {
+    const accessToken = this.getAccessToken();
     
-    const response = await fetch(this.userInfoUrl, {
+    const response = await fetch(this.proxyUrl, {
+      method: 'POST',
       headers: {
-        'Authorization': `OAuth ${tokens.accessToken}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        method,
+        params,
+        accessToken,
+      }),
     });
     
     if (!response.ok) {
-      throw new Error(`Yandex ID API Error: ${response.status}`);
+      const error = await response.json().catch(() => ({ error: 'Network error' }));
+      throw new Error(error.error || `Yandex API Error: ${response.status}`);
     }
     
-    const data = await response.json();
+    const data: YandexApiResponse<T> = await response.json();
     
-    // Преобразуем ответ Yandex ID в наш формат YandexUser
-    return {
-      uid: data.id,
-      login: data.login,
-      name: data.real_name || data.display_name || data.login,
-      displayName: data.display_name,
-      avatarUrl: data.default_avatar_id 
-        ? `https://avatars.yandex.net/get-yapic/${data.default_avatar_id}/islands-200`
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    
+    return data.result;
+  }
+  
+  /**
+   * Получает информацию о текущем пользователе
+   */
+  public async getCurrentUser(): Promise<YandexUser> {
+    // Используем кэш если есть
+    if (cachedUser) {
+      return cachedUser;
+    }
+    
+    const data = await this.request<{ account: any }>('account/status');
+    
+    const account = data.account;
+    if (!account) {
+      throw new Error('Не удалось получить информацию об аккаунте');
+    }
+    
+    // Сохраняем userId для других запросов
+    cachedUserId = account.uid;
+    
+    // Формируем объект пользователя
+    cachedUser = {
+      uid: account.uid,
+      login: account.login,
+      name: account.displayName || account.login,
+      displayName: account.displayName,
+      avatarUrl: account.avatarUrl 
+        ? `https://avatars.yandex.net/get-yapic/${account.avatarUrl}/islands-200`
         : undefined,
     } as YandexUser;
+    
+    return cachedUser;
+  }
+
+  /**
+   * Получает userId (с кэшированием)
+   */
+  private async getUserId(): Promise<number> {
+    if (cachedUserId) {
+      return cachedUserId;
+    }
+    const user = await this.getCurrentUser();
+    return user.uid;
+  }
+
+  /**
+   * Сбрасывает кэш пользователя
+   */
+  public clearUserCache(): void {
+    cachedUser = null;
+    cachedUserId = null;
   }
   
   /**
    * Получает плейлисты пользователя
-   * @todo Реализовать когда будет доступ к Yandex Music API
    */
   public async getUserPlaylists(userId?: string): Promise<YandexPlaylist[]> {
-    // Yandex Music API требует специальный доступ
-    // Пока возвращаем пустой массив
-    console.warn('Yandex Music playlists API not implemented');
-    return [];
+    const uid = userId ? parseInt(userId) : await this.getUserId();
+    
+    const data = await this.request<YandexPlaylist[]>('users/playlists/list', {
+      userId: uid,
+    });
+    
+    return data || [];
   }
   
   /**
    * Получает плейлист по ID
-   * @todo Реализовать когда будет доступ к Yandex Music API
    */
   public async getPlaylist(userId: number, kind: number): Promise<YandexPlaylist> {
-    throw new Error('Yandex Music playlists API not implemented');
+    const data = await this.request<YandexPlaylist>('users/playlists', {
+      userId,
+      kind,
+    });
+    
+    return data;
   }
   
   /**
@@ -107,41 +175,47 @@ export class YandexApiService {
   public async getPlaylistTracks(userId: number, kind: number): Promise<YandexTrack[]> {
     const playlist = await this.getPlaylist(userId, kind);
     
-    if (!playlist.tracks) return [];
+    if (!playlist.tracks || playlist.tracks.length === 0) {
+      return [];
+    }
     
     // Получаем полную информацию о треках
     const trackIds = playlist.tracks
       .filter(t => t.track)
-      .map(t => t.track!.id);
+      .map(t => String(t.track!.id));
     
     if (trackIds.length === 0) return [];
     
-    return this.getTracks(trackIds.map(String));
+    return this.getTracks(trackIds);
   }
   
   /**
    * Получает информацию о треках по ID
    */
   public async getTracks(trackIds: string[]): Promise<YandexTrack[]> {
-    return this.request<YandexTrack[]>('/tracks', {
-      method: 'POST',
-      body: JSON.stringify({
-        'track-ids': trackIds,
-      }),
+    const data = await this.request<YandexTrack[]>('tracks', {
+      trackIds,
     });
+    
+    return data || [];
   }
   
   /**
    * Получает "Мне нравится" (лайкнутые треки)
    */
   public async getLikedTracks(): Promise<YandexTrack[]> {
-    const user = await this.getCurrentUser();
-    const data = await this.request<{ library: { tracks: { id: string }[] } }>(
-      `/users/${user.uid}/likes/tracks`
+    const userId = await this.getUserId();
+    
+    const data = await this.request<{ library: { tracks: { id: string; albumId?: string }[] } }>(
+      'users/likes/tracks',
+      { userId }
     );
     
-    if (!data.library?.tracks?.length) return [];
+    if (!data.library?.tracks?.length) {
+      return [];
+    }
     
+    // Получаем полную информацию о треках
     const trackIds = data.library.tracks.map(t => t.id);
     return this.getTracks(trackIds);
   }
@@ -152,113 +226,99 @@ export class YandexApiService {
   public async search(
     query: string,
     type: 'all' | 'track' | 'artist' | 'album' | 'playlist' = 'all',
-    page: number = 0
+    page: number = 0,
+    pageSize: number = 20
   ): Promise<YandexSearchResult> {
-    return this.request<YandexSearchResult>(
-      `/search?text=${encodeURIComponent(query)}&type=${type}&page=${page}`
-    );
+    const data = await this.request<YandexSearchResult>('search', {
+      text: query,
+      type,
+      page,
+      pageSize,
+    });
+    
+    return data;
   }
   
   /**
    * Получает информацию об альбоме
+   * @todo Добавить в API route при необходимости
    */
   public async getAlbum(albumId: number): Promise<YandexAlbum> {
-    return this.request<YandexAlbum>(`/albums/${albumId}/with-tracks`);
+    throw new Error('Метод getAlbum пока не реализован');
   }
   
   /**
    * Получает информацию об артисте
+   * @todo Добавить в API route при необходимости
    */
   public async getArtist(artistId: number): Promise<YandexArtist> {
-    return this.request<YandexArtist>(`/artists/${artistId}`);
+    throw new Error('Метод getArtist пока не реализован');
   }
   
   /**
    * Получает популярные треки артиста
+   * @todo Добавить в API route при необходимости
    */
   public async getArtistTracks(artistId: number): Promise<YandexTrack[]> {
-    const data = await this.request<{ tracks: YandexTrack[] }>(
-      `/artists/${artistId}/tracks`
-    );
-    return data.tracks || [];
+    throw new Error('Метод getArtistTracks пока не реализован');
   }
   
   /**
    * Получает текст песни
+   * @todo Добавить в API route при необходимости
    */
   public async getLyrics(trackId: string): Promise<YandexLyrics | null> {
-    try {
-      return await this.request<YandexLyrics>(`/tracks/${trackId}/lyrics`);
-    } catch {
-      return null;
-    }
+    // Пока не реализовано
+    return null;
   }
   
   /**
    * Получает информацию для скачивания трека
    */
   public async getDownloadInfo(trackId: string): Promise<YandexDownloadInfo[]> {
-    return this.request<YandexDownloadInfo[]>(`/tracks/${trackId}/download-info`);
+    const data = await this.request<YandexDownloadInfo[]>('tracks/download-info', {
+      trackId,
+    });
+    
+    return data || [];
   }
   
   /**
    * Получает прямую ссылку на аудио файл
    */
   public async getTrackUrl(trackId: string, quality: 'lq' | 'hq' = 'hq'): Promise<string> {
+    // Сначала получаем download info
     const downloadInfo = await this.getDownloadInfo(trackId);
     
-    // Выбираем лучшее качество
+    if (!downloadInfo || downloadInfo.length === 0) {
+      throw new Error('Нет информации для скачивания трека');
+    }
+    
+    // Выбираем нужное качество
     const sortedInfo = downloadInfo.sort((a, b) => b.bitrateInKbps - a.bitrateInKbps);
     const info = quality === 'hq' ? sortedInfo[0] : sortedInfo[sortedInfo.length - 1];
     
-    if (!info) {
-      throw new Error('No download info available');
+    if (!info?.downloadInfoUrl) {
+      throw new Error('Не найдена ссылка для скачивания');
     }
     
-    // Получаем прямую ссылку
-    const response = await fetch(info.downloadInfoUrl);
-    const data = await response.text();
-    
-    // Парсим XML ответ
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(data, 'text/xml');
-    
-    const host = xml.querySelector('host')?.textContent;
-    const path = xml.querySelector('path')?.textContent;
-    const ts = xml.querySelector('ts')?.textContent;
-    const s = xml.querySelector('s')?.textContent;
-    
-    if (!host || !path || !ts || !s) {
-      throw new Error('Invalid download info response');
-    }
-    
-    // Формируем ссылку
-    const sign = await this.generateSign(path.slice(1) + s);
-    return `https://${host}/get-mp3/${sign}/${ts}${path}`;
-  }
-  
-  /**
-   * Генерирует подпись для ссылки
-   */
-  private async generateSign(data: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode('XGRlBW9FXlekgbPrRHuSiA' + data);
-    const hashBuffer = await crypto.subtle.digest('MD5', dataBuffer).catch(() => {
-      // Fallback если MD5 недоступен
-      return new ArrayBuffer(16);
+    // Получаем прямую ссылку через прокси
+    const data = await this.request<{ directLink: string }>('tracks/direct-link', {
+      downloadInfoUrl: info.downloadInfoUrl,
     });
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    return data.directLink;
   }
   
   /**
    * Лайкает трек
    */
   public async likeTrack(trackId: string): Promise<void> {
-    const user = await this.getCurrentUser();
-    await this.request(`/users/${user.uid}/likes/tracks/add`, {
-      method: 'POST',
-      body: JSON.stringify({ 'track-ids': [trackId] }),
+    const userId = await this.getUserId();
+    
+    await this.request('users/likes/tracks/add', {
+      userId,
+      trackIds: [trackId],
     });
   }
   
@@ -266,37 +326,48 @@ export class YandexApiService {
    * Убирает лайк с трека
    */
   public async unlikeTrack(trackId: string): Promise<void> {
-    const user = await this.getCurrentUser();
-    await this.request(`/users/${user.uid}/likes/tracks/remove`, {
-      method: 'POST',
-      body: JSON.stringify({ 'track-ids': [trackId] }),
+    const userId = await this.getUserId();
+    
+    await this.request('users/likes/tracks/remove', {
+      userId,
+      trackIds: [trackId],
     });
   }
   
   /**
    * Получает рекомендации
+   * @todo Добавить в API route при необходимости
    */
   public async getRecommendations(): Promise<YandexTrack[]> {
-    const user = await this.getCurrentUser();
-    const data = await this.request<{ tracks: YandexTrack[] }>(
-      `/users/${user.uid}/recommendations`
-    );
-    return data.tracks || [];
+    throw new Error('Метод getRecommendations пока не реализован');
   }
   
   /**
    * Получает чарт
+   * @todo Добавить в API route при необходимости
    */
   public async getChart(): Promise<YandexPlaylist> {
-    return this.request<YandexPlaylist>('/landing3/chart');
+    throw new Error('Метод getChart пока не реализован');
   }
   
   /**
    * Получает новые релизы
+   * @todo Добавить в API route при необходимости
    */
   public async getNewReleases(): Promise<YandexAlbum[]> {
-    const data = await this.request<{ newReleases: YandexAlbum[] }>('/landing3/new-releases');
-    return data.newReleases || [];
+    throw new Error('Метод getNewReleases пока не реализован');
+  }
+
+  /**
+   * Проверяет валидность токена
+   */
+  public async validateToken(): Promise<boolean> {
+    try {
+      await this.getCurrentUser();
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 

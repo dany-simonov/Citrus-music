@@ -1,7 +1,7 @@
 {
   "name": "citrus-music",
-  "version": "1.0.0",
-  "description": "Музыкальное приложение Цитрус с интеграцией VK и Яндекс Музыки",
+  "version": "1.2.0",
+  "description": "Музыкальное приложение Цитрус с интеграцией VK Музыки",
   "private": true,
   "scripts": {
     "dev": "next dev",

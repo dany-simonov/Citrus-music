@@ -31,7 +31,8 @@ import {
   AlertCircle,
   Trash2,
   Bell,
-  Key
+  Key,
+  AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -43,9 +44,13 @@ export default function AccountPage() {
     vkUser, 
     yandexUser,
     vkTokens,
+    yandexTokens,
     setVKTokens,
     setVKUser,
+    setYandexTokens,
+    setYandexUser,
     clearVKAuth,
+    clearYandexAuth,
     logout 
   } = useAuthStore();
   const { items: history } = useHistoryStore();
@@ -63,16 +68,34 @@ export default function AccountPage() {
 
   // Состояние для настроек VK токена
   const [vkToken, setVkToken] = useState('');
-  const [showToken, setShowToken] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [showVkToken, setShowVkToken] = useState(false);
+  const [vkSaveStatus, setVkSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [vkErrorMessage, setVkErrorMessage] = useState('');
+  
+  // Состояние для настроек Yandex токена
+  const [yandexToken, setYandexToken] = useState('');
+  const [showYandexToken, setShowYandexToken] = useState(false);
+  const [yandexSaveStatus, setYandexSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [yandexErrorMessage, setYandexErrorMessage] = useState('');
+  
   const [notificationLoading, setNotificationLoading] = useState(false);
+
+  // Для обратной совместимости со старым кодом
+  const showToken = showVkToken;
+  const setShowToken = setShowVkToken;
+  const saveStatus = vkSaveStatus;
+  const setSaveStatus = setVkSaveStatus;
+  const errorMessage = vkErrorMessage;
+  const setErrorMessage = setVkErrorMessage;
 
   useEffect(() => {
     if (vkTokens?.accessToken) {
       setVkToken(vkTokens.accessToken);
     }
-  }, [vkTokens]);
+    if (yandexTokens?.accessToken) {
+      setYandexToken(yandexTokens.accessToken);
+    }
+  }, [vkTokens, yandexTokens]);
 
   useEffect(() => {
     checkPermission();
@@ -83,7 +106,7 @@ export default function AccountPage() {
     try {
       const success = await setPushEnabled(!notificationSettings.pushEnabled);
       if (!success && !notificationSettings.pushEnabled) {
-        setErrorMessage('Разрешите уведомления в настройках браузера');
+        setVkErrorMessage('Разрешите уведомления в настройках браузера');
       }
     } finally {
       setNotificationLoading(false);
@@ -92,8 +115,8 @@ export default function AccountPage() {
 
   const handleSaveVKToken = async () => {
     if (!vkToken.trim()) {
-      setSaveStatus('error');
-      setErrorMessage('Введите токен');
+      setVkSaveStatus('error');
+      setVkErrorMessage('Введите токен');
       return;
     }
 
@@ -110,8 +133,8 @@ export default function AccountPage() {
       const data = await response.json();
 
       if (data.error) {
-        setSaveStatus('error');
-        setErrorMessage(data.error.error_msg || 'Неверный токен');
+        setVkSaveStatus('error');
+        setVkErrorMessage(data.error.error_msg || 'Неверный токен');
         return;
       }
 
@@ -132,18 +155,75 @@ export default function AccountPage() {
         source: MusicSource.VK,
       });
 
-      setSaveStatus('success');
-      setTimeout(() => setSaveStatus('idle'), 3000);
+      setVkSaveStatus('success');
+      setTimeout(() => setVkSaveStatus('idle'), 3000);
     } catch (err) {
-      setSaveStatus('error');
-      setErrorMessage('Ошибка проверки токена');
+      setVkSaveStatus('error');
+      setVkErrorMessage('Ошибка проверки токена');
+    }
+  };
+
+  const handleSaveYandexToken = async () => {
+    if (!yandexToken.trim()) {
+      setYandexSaveStatus('error');
+      setYandexErrorMessage('Введите токен');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/yandex', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: 'account/status',
+          accessToken: yandexToken,
+        }),
+      });
+      const data = await response.json();
+
+      if (data.error || !data.result?.account) {
+        setYandexSaveStatus('error');
+        setYandexErrorMessage(data.error || 'Неверный токен Яндекс');
+        return;
+      }
+
+      const account = data.result.account;
+
+      setYandexTokens({
+        accessToken: yandexToken,
+        expiresIn: 365 * 24 * 60 * 60, // 1 год в секундах
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        userId: String(account.uid),
+      });
+
+      setYandexUser({
+        id: String(account.uid),
+        firstName: account.displayName || account.login,
+        lastName: '',
+        avatarUrl: account.avatarUrl 
+          ? `https://avatars.yandex.net/get-yapic/${account.avatarUrl}/islands-200`
+          : undefined,
+        source: MusicSource.YANDEX,
+      });
+
+      setYandexSaveStatus('success');
+      setTimeout(() => setYandexSaveStatus('idle'), 3000);
+    } catch (err) {
+      setYandexSaveStatus('error');
+      setYandexErrorMessage('Ошибка проверки токена');
     }
   };
 
   const handleClearVK = () => {
     clearVKAuth();
     setVkToken('');
-    setSaveStatus('idle');
+    setVkSaveStatus('idle');
+  };
+
+  const handleClearYandex = () => {
+    clearYandexAuth();
+    setYandexToken('');
+    setYandexSaveStatus('idle');
   };
 
   const handleLogout = () => {
@@ -166,8 +246,22 @@ export default function AccountPage() {
             </p>
           </div>
 
+          {/* Информация о версии */}
+          <div className="flex items-start gap-3 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-2xl mb-6">
+            <Music className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-orange-800 dark:text-orange-300 mb-1">
+                Citrus Music v1.2
+              </p>
+              <p className="text-orange-700 dark:text-orange-400">
+                Сейчас доступна только VK Музыка. Мы активно работаем над добавлением 
+                Яндекс Музыки — следите за обновлениями!
+              </p>
+            </div>
+          </div>
+
           {/* VK Token Form */}
-          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-gray-200 dark:border-neutral-800">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-gray-200 dark:border-neutral-800 mb-6">
             <div className="flex items-start gap-4 mb-6">
               <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center flex-shrink-0">
                 <Key className="w-6 h-6 text-white" />
@@ -187,31 +281,31 @@ export default function AccountPage() {
                 </label>
                 <div className="relative">
                   <input
-                    type={showToken ? 'text' : 'password'}
+                    type={showVkToken ? 'text' : 'password'}
                     value={vkToken}
                     onChange={(e) => {
                       setVkToken(e.target.value);
-                      setSaveStatus('idle');
+                      setVkSaveStatus('idle');
                     }}
                     placeholder="Вставьте токен сюда..."
-                    className="w-full px-4 py-3 pr-12 bg-gray-100 dark:bg-neutral-800 rounded-xl border-2 border-transparent focus:border-orange-500 focus:outline-none transition-colors font-mono text-sm"
+                    className="w-full px-4 py-3 pr-12 bg-gray-100 dark:bg-neutral-800 rounded-xl border-2 border-transparent focus:border-blue-500 focus:outline-none transition-colors font-mono text-sm"
                   />
                   <button
-                    onClick={() => setShowToken(!showToken)}
+                    onClick={() => setShowVkToken(!showVkToken)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
-                    {showToken ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showVkToken ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
 
-              {saveStatus === 'error' && (
+              {vkSaveStatus === 'error' && (
                 <div className="flex items-center gap-2 text-red-500 text-sm">
                   <AlertCircle className="w-4 h-4" />
-                  {errorMessage}
+                  {vkErrorMessage}
                 </div>
               )}
-              {saveStatus === 'success' && (
+              {vkSaveStatus === 'success' && (
                 <div className="flex items-center gap-2 text-green-500 text-sm">
                   <Check className="w-4 h-4" />
                   Токен сохранён! Перезагрузите страницу.
@@ -220,7 +314,7 @@ export default function AccountPage() {
 
               <button
                 onClick={handleSaveVKToken}
-                className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all"
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/35 transition-all"
               >
                 Войти с токеном VK
               </button>
@@ -230,10 +324,31 @@ export default function AccountPage() {
                   href="https://vkhost.github.io/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-orange-500 hover:underline"
+                  className="text-sm text-blue-500 hover:underline"
                 >
                   Как получить токен VK?
                 </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Яндекс Музыка - Coming Soon */}
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-gray-200 dark:border-neutral-800 opacity-60">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-yellow-500/50 flex items-center justify-center flex-shrink-0">
+                <Music className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="text-xl font-bold">Яндекс Музыка</h2>
+                  <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 rounded-full text-xs font-medium">
+                    Скоро
+                  </span>
+                </div>
+                <p className="text-gray-500 text-sm">
+                  Мы активно работаем над интеграцией Яндекс Музыки. 
+                  Следите за обновлениями!
+                </p>
               </div>
             </div>
           </div>
@@ -404,22 +519,21 @@ export default function AccountPage() {
               </div>
             )}
             
-            {yandexUser && (
-              <div className="flex items-center justify-between p-4 bg-yellow-500/10 rounded-2xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-yellow-500 flex items-center justify-center">
-                    <Music className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Яндекс Музыка</p>
-                    <p className="text-sm text-gray-500">{yandexUser.firstName}</p>
-                  </div>
+            {/* Яндекс Музыка - Coming Soon */}
+            <div className="flex items-center justify-between p-4 bg-yellow-500/5 rounded-2xl opacity-60">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-yellow-500/50 flex items-center justify-center">
+                  <Music className="w-5 h-5 text-white" />
                 </div>
-                <span className="px-3 py-1 bg-green-500/20 text-green-600 rounded-full text-sm font-medium">
-                  Подключено
-                </span>
+                <div>
+                  <p className="font-medium">Яндекс Музыка</p>
+                  <p className="text-sm text-gray-500">Скоро будет доступно</p>
+                </div>
               </div>
-            )}
+              <span className="px-3 py-1 bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 rounded-full text-sm font-medium">
+                Скоро
+              </span>
+            </div>
             
             {!vkUser && (
               <div className="p-4 bg-gray-50 dark:bg-neutral-800 rounded-2xl">
@@ -513,6 +627,31 @@ export default function AccountPage() {
                 Как получить токен VK?
               </a>
             </p>
+          </div>
+        </div>
+
+        {/* Yandex Coming Soon */}
+        <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-gray-200 dark:border-neutral-800 mb-6 opacity-60">
+          <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <Key className="w-5 h-5 text-yellow-500" />
+            Яндекс Музыка
+            <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 rounded-full text-xs font-medium">
+              Скоро
+            </span>
+          </h2>
+          
+          <div className="flex items-start gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-2xl">
+            <Music className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-yellow-800 dark:text-yellow-300 mb-1">
+                Работаем над интеграцией
+              </p>
+              <p className="text-yellow-700 dark:text-yellow-400">
+                Мы очень стараемся добавить поддержку Яндекс Музыки! 
+                К сожалению, Яндекс не предоставляет официального API, поэтому 
+                требуется время для реализации. Следите за обновлениями.
+              </p>
+            </div>
           </div>
         </div>
 

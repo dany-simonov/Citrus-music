@@ -15,21 +15,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/account/page.js"
-    ],
-    "/history/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/history/page.js"
-    ],
-    "/favorites/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/favorites/page.js"
-    ],
-    "/playlists/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/playlists/page.js"
     ]
   }
 }
